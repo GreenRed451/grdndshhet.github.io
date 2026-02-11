@@ -32,10 +32,12 @@ function main() {
     const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
     function getEmptyCharacter(name = "Новый персонаж") {
+        const baseStats = { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 };
         return {
             name, race: '', class: '', level: 1, experience: 0, armorClass: 10, hitPoints: 8,
             money: { gp: 0, sp: 0, cp: 0 },
-            stats: { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 },
+            stats: { ...baseStats },
+            level1Stats: { ...baseStats }, // *** ИСПРАВЛЕНИЕ: Добавляем поле для базовых статов 1-го уровня
             features: [], inventory: [], spells: [], notes: ''
         };
     }
@@ -51,6 +53,8 @@ function main() {
         char.features = char.features || [];
         char.notes = char.notes || '';
         char.stats = char.stats || { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 };
+        // *** ИСПРАВЛЕНИЕ: Обеспечиваем обратную совместимость для старых персонажей
+        char.level1Stats = char.level1Stats || { ...char.stats };
 
         elements.charName.value = char.name;
         elements.race.value = char.race;
@@ -96,6 +100,11 @@ function main() {
                 char.stats[input.id] = parseInt(input.value);
             }
         });
+        
+        // *** ИСПРАВЛЕНИЕ: Если мы на 1-м уровне, обновляем "базовые" статы
+        if (char.level === 1) {
+            char.level1Stats = { ...char.stats };
+        }
     }
     
     function saveAllCharactersToLocalStorage() {
@@ -134,16 +143,30 @@ function main() {
             elements.pointBuyCounter.style.display = 'none';
         }
 
+        // *** ИСПРАВЛЕНИЕ: Полностью переписанная логика ASI
         if (level < 4) {
             elements.asiSection.classList.add('hidden');
         } else {
             let asiCount = 0;
             asiLevels.forEach(asiLevel => { if (level >= asiLevel) asiCount++; });
-            let totalStatPoints = 0;
-            elements.statInputs.forEach(input => { totalStatPoints += parseInt(input.value); });
-            const basePoints = 6 * 8 + 27;
-            const spentAsiPoints = totalStatPoints - basePoints;
-            const availableAsiPoints = (asiCount * 2) - spentAsiPoints;
+            const totalAsiPointsEarned = asiCount * 2;
+            
+            let currentStatTotal = 0;
+            elements.statInputs.forEach(input => { currentStatTotal += parseInt(input.value); });
+            
+            const char = characters[currentSlot];
+            if (!char.level1Stats) { // Обратная совместимость
+                char.level1Stats = { ...char.stats };
+            }
+
+            let level1StatTotal = 0;
+            for (const stat in char.level1Stats) {
+                level1StatTotal += char.level1Stats[stat];
+            }
+
+            const asiPointsSpent = currentStatTotal - level1StatTotal;
+            const availableAsiPoints = totalAsiPointsEarned - asiPointsSpent;
+            
             if (availableAsiPoints > 0) {
                 elements.asiSection.classList.remove('hidden');
                 elements.asiPoints.textContent = availableAsiPoints;
