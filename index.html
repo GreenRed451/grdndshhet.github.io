@@ -8,45 +8,75 @@
 </head>
 <body>
     <div class="container">
+        <!-- Управление персонажами -->
+        <div class="section character-slots">
+            <h2>Слоты персонажей</h2>
+            <select id="character-slot-select"></select>
+            <button id="new-char-btn">Новый</button>
+            <button id="delete-char-btn">Удалить</button>
+        </div>
+
         <h1>Лист персонажа D&D 5e</h1>
 
         <!-- Основная информация -->
         <div class="section">
             <h2>Основная информация</h2>
-            <input type="text" id="charName" placeholder="Имя персонажа">
-            <input type="number" id="level" placeholder="Уровень" min="1" max="20">
+            <div class="info-grid">
+                <input type="text" id="charName" placeholder="Имя персонажа">
+                <input type="text" id="race" placeholder="Раса">
+                <input type="text" id="class" placeholder="Класс">
+                <input type="number" id="level" placeholder="Уровень" value="1" min="1" max="20">
+                <input type="number" id="experience" placeholder="Опыт">
+                <div class="calc-field">
+                    <input type="number" id="armorClass" placeholder="Класс брони">
+                    <button id="recalc-ac-btn" title="Пересчитать (10 + мод. Ловкости)">🔄</button>
+                </div>
+                 <div class="calc-field">
+                    <input type="number" id="hitPoints" placeholder="Хиты">
+                    <button id="recalc-hp-btn" title="Пересчитать (8 + мод. Телосложения)">🔄</button>
+                </div>
+            </div>
         </div>
 
         <!-- Характеристики -->
         <div class="section">
             <h2>Характеристики</h2>
+            <div id="asi-section" class="hidden">
+                <p>Доступно очков улучшения: <b id="asi-points">0</b></p>
+            </div>
             <div class="stats-grid">
                 <div class="stat">
                     <label for="strength">Сила</label>
-                    <input type="number" id="strength" class="stat-input" value="10" min="1" max="20">
+                    <input type="number" id="strength" class="stat-input" value="8" min="1" max="20">
+                    <span class="modifier" id="strength-mod"></span>
                 </div>
                 <div class="stat">
                     <label for="dexterity">Ловкость</label>
-                    <input type="number" id="dexterity" class="stat-input" value="10" min="1" max="20">
+                    <input type="number" id="dexterity" class="stat-input" value="8" min="1" max="20">
+                    <span class="modifier" id="dexterity-mod"></span>
                 </div>
                 <div class="stat">
                     <label for="constitution">Телосложение</label>
-                    <input type="number" id="constitution" class="stat-input" value="10" min="1" max="20">
+                    <input type="number" id="constitution" class="stat-input" value="8" min="1" max="20">
+                    <span class="modifier" id="constitution-mod"></span>
                 </div>
                 <div class="stat">
                     <label for="intelligence">Интеллект</label>
-                    <input type="number" id="intelligence" class="stat-input" value="10" min="1" max="20">
+                    <input type="number" id="intelligence" class="stat-input" value="8" min="1" max="20">
+                    <span class="modifier" id="intelligence-mod"></span>
                 </div>
                 <div class="stat">
                     <label for="wisdom">Мудрость</label>
-                    <input type="number" id="wisdom" class="stat-input" value="10" min="1" max="20">
+                    <input type="number" id="wisdom" class="stat-input" value="8" min="1" max="20">
+                    <span class="modifier" id="wisdom-mod"></span>
                 </div>
                 <div class="stat">
                     <label for="charisma">Харизма</label>
-                    <input type="number" id="charisma" class="stat-input" value="10" min="1" max="20">
+                    <input type="number" id="charisma" class="stat-input" value="8" min="1" max="20">
+                    <span class="modifier" id="charisma-mod"></span>
                 </div>
             </div>
-            <p id="point-buy-counter">Очков для распределения: 27</p>
+            <p id="point-buy-counter">Очков для распределения (Point Buy): 27</p>
         </div>
 
         <!-- Инвентарь -->
@@ -67,12 +97,13 @@
         
         <!-- Кнопки управления -->
         <div class="section actions">
-             <button id="save-btn">Сохранить</button>
+             <button id="save-btn">Сохранить в слот</button>
              <button id="share-btn">Поделиться с ГМ</button>
+             <button id="download-btn">Скачать файл</button>
+             <button id="upload-btn">Загрузить файл</button>
+             <input type="file" id="file-uploader" class="hidden">
         </div>
-
     </div>
-    <!-- Подключаем JS от Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="script.js"></script>
 </body>
