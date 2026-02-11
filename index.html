@@ -22,19 +22,31 @@
         <div class="section">
             <h2>Основная информация</h2>
             <div class="info-grid">
-                <input type="text" id="charName" placeholder="Имя персонажа">
-                <input type="text" id="race" placeholder="Раса">
-                <input type="text" id="class" placeholder="Класс">
-                <input type="number" id="level" placeholder="Уровень" value="1" min="1" max="20">
-                <input type="number" id="experience" placeholder="Опыт">
-                <div class="calc-field">
-                    <input type="number" id="armorClass" placeholder="Класс брони">
-                    <button id="recalc-ac-btn" title="Пересчитать (10 + мод. Ловкости)">🔄</button>
+                <div class="labeled-input"><label for="charName">Имя</label><input type="text" id="charName"></div>
+                <div class="labeled-input"><label for="race">Раса</label><input type="text" id="race"></div>
+                <div class="labeled-input"><label for="class">Класс</label><input type="text" id="class"></div>
+                <div class="labeled-input"><label for="level">Уровень</label><input type="number" id="level" value="1" min="1" max="20"></div>
+                <div class="labeled-input"><label for="experience">Опыт</label><input type="number" id="experience"></div>
+                <div class="labeled-input">
+                    <label for="armorClass">КБ</label>
+                    <div class="calc-field">
+                        <input type="number" id="armorClass">
+                        <button id="recalc-ac-btn" title="Пересчитать (10 + мод. Ловкости)">🔄</button>
+                    </div>
                 </div>
-                 <div class="calc-field">
-                    <input type="number" id="hitPoints" placeholder="Хиты">
-                    <button id="recalc-hp-btn" title="Пересчитать (8 + мод. Телосложения)">🔄</button>
+                 <div class="labeled-input">
+                    <label for="hitPoints">Хиты</label>
+                    <div class="calc-field">
+                        <input type="number" id="hitPoints">
+                        <button id="recalc-hp-btn" title="Пересчитать (8 + мод. Телосложения)">🔄</button>
+                    </div>
                 </div>
+            </div>
+            <h3>Деньги</h3>
+            <div class="money-grid">
+                 <div class="labeled-input"><label for="gp">ЗМ</label><input type="number" id="gp" min="0"></div>
+                 <div class="labeled-input"><label for="sp">СМ</label><input type="number" id="sp" min="0"></div>
+                 <div class="labeled-input"><label for="cp">ММ</label><input type="number" id="cp" min="0"></div>
             </div>
         </div>
 
@@ -47,52 +59,84 @@
             <div class="stats-grid">
                 <div class="stat">
                     <label for="strength">Сила</label>
-                    <input type="number" id="strength" class="stat-input" value="8" min="1" max="20">
-                    <span class="modifier" id="strength-mod"></span>
+                    <div class="stat-control">
+                        <input type="number" id="strength" class="stat-input" value="8" min="1" max="20">
+                        <span class="modifier" id="strength-mod"></span>
+                    </div>
                 </div>
                 <div class="stat">
                     <label for="dexterity">Ловкость</label>
-                    <input type="number" id="dexterity" class="stat-input" value="8" min="1" max="20">
-                    <span class="modifier" id="dexterity-mod"></span>
+                    <div class="stat-control">
+                        <input type="number" id="dexterity" class="stat-input" value="8" min="1" max="20">
+                        <span class="modifier" id="dexterity-mod"></span>
+                    </div>
                 </div>
                 <div class="stat">
                     <label for="constitution">Телосложение</label>
-                    <input type="number" id="constitution" class="stat-input" value="8" min="1" max="20">
-                    <span class="modifier" id="constitution-mod"></span>
+                    <div class="stat-control">
+                        <input type="number" id="constitution" class="stat-input" value="8" min="1" max="20">
+                        <span class="modifier" id="constitution-mod"></span>
+                    </div>
                 </div>
                 <div class="stat">
                     <label for="intelligence">Интеллект</label>
-                    <input type="number" id="intelligence" class="stat-input" value="8" min="1" max="20">
-                    <span class="modifier" id="intelligence-mod"></span>
+                    <div class="stat-control">
+                        <input type="number" id="intelligence" class="stat-input" value="8" min="1" max="20">
+                        <span class="modifier" id="intelligence-mod"></span>
+                    </div>
                 </div>
                 <div class="stat">
                     <label for="wisdom">Мудрость</label>
-                    <input type="number" id="wisdom" class="stat-input" value="8" min="1" max="20">
-                    <span class="modifier" id="wisdom-mod"></span>
+                    <div class="stat-control">
+                        <input type="number" id="wisdom" class="stat-input" value="8" min="1" max="20">
+                        <span class="modifier" id="wisdom-mod"></span>
+                    </div>
                 </div>
                 <div class="stat">
                     <label for="charisma">Харизма</label>
-                    <input type="number" id="charisma" class="stat-input" value="8" min="1" max="20">
-                    <span class="modifier" id="charisma-mod"></span>
+                    <div class="stat-control">
+                        <input type="number" id="charisma" class="stat-input" value="8" min="1" max="20">
+                        <span class="modifier" id="charisma-mod"></span>
+                    </div>
                 </div>
             </div>
             <p id="point-buy-counter">Очков для распределения (Point Buy): 27</p>
+        </div>
+
+        <!-- Умения и особенности -->
+        <div class="section">
+            <h2>Умения и особенности</h2>
+            <div id="features-list"></div>
+            <div class="add-item-form">
+                <input type="text" id="feature-input" placeholder="Например: Сопротивление к огню">
+                <button id="add-feature-btn">Добавить</button>
+            </div>
         </div>
 
         <!-- Инвентарь -->
         <div class="section">
             <h2>Инвентарь</h2>
             <div id="inventory-list"></div>
-            <select id="item-select"></select>
-            <button id="add-item-btn">Добавить предмет</button>
+            <div class="add-item-form">
+                <select id="item-select"></select>
+                <button id="add-item-btn">Добавить</button>
+            </div>
         </div>
 
         <!-- Заклинания -->
         <div class="section">
             <h2>Книга заклинаний</h2>
             <div id="spell-list"></div>
-            <select id="spell-select"></select>
-            <button id="add-spell-btn">Добавить заклинание</button>
+            <div class="add-item-form">
+                <select id="spell-select"></select>
+                <button id="add-spell-btn">Добавить</button>
+            </div>
+        </div>
+
+        <!-- Заметки -->
+        <div class="section">
+            <h2>Заметки</h2>
+            <textarea id="notes" rows="6"></textarea>
         </div>
         
         <!-- Кнопки управления -->
