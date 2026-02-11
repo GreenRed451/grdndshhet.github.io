@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лист персонажа D&D</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Лист персонажа</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <label for="strength">Сила</label>
+                <input type="number" id="strength" value="10" onchange="calculateAll()">
+                <div class="modifier" id="strength-mod">0</div>
+            </div>
+            <div class="stat-card">
+                <label for="dexterity">Ловкость</label>
+                <input type="number" id="dexterity" value="10" onchange="calculateAll()">
+                <div class="modifier" id="dexterity-mod">0</div>
+            </div>
+            <div class="stat-card">
+                <label for="constitution">Телосложение</label>
+                <input type="number" id="constitution" value="10" onchange="calculateAll()">
+                <div class="modifier" id="constitution-mod">0</div>
+            </div>
+            <div class="stat-card">
+                <label for="intelligence">Интеллект</label>
+                <input type="number" id="intelligence" value="10" onchange="calculateAll()">
+                <div class="modifier" id="intelligence-mod">0</div>
+            </div>
+            <div class="stat-card">
+                <label for="wisdom">Мудрость</label>
+                <input type="number" id="wisdom" value="10" onchange="calculateAll()">
+                <div class="modifier" id="wisdom-mod">0</div>
+            </div>
+            <div class="stat-card">
+                <label for="charisma">Харизма</label>
+                <input type="number" id="charisma" value="10" onchange="calculateAll()">
+                <div class="modifier" id="charisma-mod">0</div>
+            </div>
+        </div>
+
+        <h2>Навыки</h2>
+        <ul class="skills-list">
+            <li>Акробатика (Лов): <span id="acrobatics-skill">0</span></li>
+            <li>Атлетика (Сил): <span id="athletics-skill">0</span></li>
+            <li>Выступление (Хар): <span id="performance-skill">0</span></li>
+            <li>Магия (Инт): <span id="arcana-skill">0</span></li>
+            <!-- Добавьте остальные навыки по аналогии -->
+        </ul>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
