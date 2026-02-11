@@ -26,7 +26,6 @@ function main() {
 
     // --- Глобальное состояние ---
     let characters = []; let currentSlot = 0; let itemsDB = []; let spellsDB = [];
-    let isAcManual = false; let isHpManual = false; // Флаги для отслеживания ручного ввода
     const asiLevels = [4, 8, 12, 16, 19];
     const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
@@ -55,12 +54,10 @@ function main() {
         elements.armorClass.value = char.armorClass; elements.hitPoints.value = char.hitPoints;
         elements.gp.value = char.money.gp; elements.sp.value = char.money.sp; elements.cp.value = char.money.cp;
         elements.notes.value = char.notes;
-        for (const stat in char.stats) document.getElementById(stat).value = char.stats[stat];
+        for (const stat in char.stats) {
+            document.getElementById(stat).value = char.stats[stat];
+        }
         
-        // Сбрасываем флаги при загрузке персонажа
-        isAcManual = false;
-        isHpManual = false;
-
         updateAllCalculatedFields();
         renderList(elements.inventoryList, char.inventory, 'inventory');
         renderList(elements.spellList, char.spells, 'spells');
@@ -74,7 +71,9 @@ function main() {
         char.armorClass = parseInt(elements.armorClass.value) || 10; char.hitPoints = parseInt(elements.hitPoints.value) || 8;
         char.money = { gp: parseInt(elements.gp.value) || 0, sp: parseInt(elements.sp.value) || 0, cp: parseInt(elements.cp.value) || 0 };
         char.notes = elements.notes.value;
-        elements.statInputs.forEach(input => char.stats[input.id] = parseInt(input.value));
+        elements.statInputs.forEach(input => {
+            char.stats[input.id] = parseInt(input.value);
+        });
     }
     
     function saveAllCharactersToLocalStorage() {
@@ -88,11 +87,8 @@ function main() {
             document.getElementById(`${input.id}-mod`).textContent = calculateModifier(parseInt(input.value));
         });
 
-        // *** ИСПРАВЛЕНИЕ: Авто-обновление КБ и Хитов ***
-        if (!isAcManual) recalcAC();
-        if (!isHpManual) recalcHP();
-
         const level = parseInt(elements.level.value);
+        
         if (level === 1) {
             elements.pointBuyCounter.style.display = 'block';
             let totalCost = 0;
@@ -116,7 +112,7 @@ function main() {
             let asiCount = 0;
             asiLevels.forEach(asiLevel => { if (level >= asiLevel) asiCount++; });
             let totalStatPoints = 0;
-            elements.statInputs.forEach(input => totalStatPoints += parseInt(input.value));
+            elements.statInputs.forEach(input => { totalStatPoints += parseInt(input.value); });
             const basePoints = 6 * 8 + 27;
             const spentAsiPoints = totalStatPoints - basePoints;
             const availableAsiPoints = (asiCount * 2) - spentAsiPoints;
@@ -149,13 +145,6 @@ function main() {
             listElement.appendChild(itemDiv);
         });
     }
-    
-    function recalcAC(){
-        elements.armorClass.value = 10 + Math.floor((parseInt(document.getElementById('dexterity').value) - 10) / 2);
-    }
-    function recalcHP(){
-        elements.hitPoints.value = 8 + Math.floor((parseInt(document.getElementById('constitution').value) - 10) / 2);
-    }
 
     function shareWithGM() {
         saveCurrentCharacterState();
@@ -171,9 +160,13 @@ function main() {
     function loadCharactersFromLocalStorage(){
         const data = localStorage.getItem('dndCharacters');
         characters = data ? JSON.parse(data) : [];
-        if (characters.length === 0) characters.push(getEmptyCharacter());
+        if (characters.length === 0) {
+            characters.push(getEmptyCharacter());
+        }
         currentSlot = parseInt(localStorage.getItem('dndCurrentSlot')) || 0;
-        if (currentSlot >= characters.length) currentSlot = 0;
+        if (currentSlot >= characters.length) {
+            currentSlot = 0;
+        }
         updateSlotSelector();
         renderCharacter(characters[currentSlot]);
     }
@@ -222,6 +215,8 @@ function main() {
             const [itemsRes, spellsRes] = await Promise.all([fetch('items.json'), fetch('spells.json')]);
             itemsDB = await itemsRes.json();
             spellsDB = await spellsRes.json();
+            elements.itemSelect.innerHTML = '';
+            elements.spellSelect.innerHTML = '';
             itemsDB.forEach(item => elements.itemSelect.add(new Option(item.name, item.name)));
             spellsDB.forEach(spell => elements.spellSelect.add(new Option(spell.name, spell.name)));
         } catch (error) { console.error("DB load error:", error); }
@@ -253,4 +248,55 @@ function main() {
             if (confirm(`Вы уверены, что хотите удалить персонажа "${characters[currentSlot].name}"?`)) {
                 characters.splice(currentSlot, 1);
                 currentSlot = 0;
-                // Не и
+                saveAllCharactersToLocalStorage();
+                updateSlotSelector();
+                renderCharacter(characters[currentSlot]);
+            }
+        } else { alert("Нельзя удалить последнего персонажа!"); }
+    });
+    
+    elements.slotSelect.addEventListener("change", e => {
+        saveCurrentCharacterState();
+        currentSlot = parseInt(e.target.value);
+        localStorage.setItem('dndCurrentSlot', currentSlot);
+        renderCharacter(characters[currentSlot]);
+    });
+
+    elements.statInputs.forEach(input => input.addEventListener('input', updateAllCalculatedFields));
+    elements.level.addEventListener('input', updateAllCalculatedFields);
+    
+    elements.recalcAcBtn.addEventListener("click", () => {
+        elements.armorClass.value = 10 + Math.floor((parseInt(document.getElementById('dexterity').value) - 10) / 2);
+    });
+    elements.recalcHpBtn.addEventListener("click", () => {
+        elements.hitPoints.value = 8 + Math.floor((parseInt(document.getElementById('constitution').value) - 10) / 2);
+    });
+
+    elements.addFeatureBtn.addEventListener("click", () => {
+        const featureText = elements.featureInput.value.trim();
+        if (featureText) {
+            characters[currentSlot].features.push(featureText);
+            renderList(elements.featuresList, characters[currentSlot].features, 'features');
+            elements.featureInput.value = '';
+        }
+    });
+    
+    elements.addItemBtn.addEventListener("click", () => {
+        const item = itemsDB.find(i => i.name === elements.itemSelect.value);
+        if (item) {
+            characters[currentSlot].inventory.push(item);
+            renderList(elements.inventoryList, characters[currentSlot].inventory, 'inventory');
+        }
+    });
+    
+    elements.addSpellBtn.addEventListener("click", () => {
+        const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
+        if (spell) {
+            characters[currentSlot].spells.push(spell);
+            renderList(elements.spellList, characters[currentSlot].spells, 'spells');
+        }
+    });
+
+    // --- Инициализация ---
+    loadDatabases().then(loadCharactersFromLocalStorage);
+}
