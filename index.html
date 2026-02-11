@@ -9,6 +9,43 @@
 <body>
     <div class="container">
         <h1>Лист персонажа</h1>
+
+    <!-- Блок с основной информацией -->
+    <div class="character-info-grid">
+        <div class="info-item">
+            <label for="char-name">Имя персонажа</label>
+            <input type="text" id="char-name" name="char-name">
+        </div>
+        <div class="info-item">
+            <label for="char-race">Раса</label>
+            <input type="text" id="char-race" name="char-race">
+        </div>
+        <div class="info-item">
+            <label for="char-class">Класс</label>
+            <input type="text" id="char-class" name="char-class">
+        </div>
+        <div class="info-item">
+            <label for="char-level">Уровень</label>
+            <input type="number" id="char-level" name="char-level" value="1">
+        </div>
+        <div class="info-item">
+            <label for="char-xp">Опыт (XP)</label>
+            <input type="number" id="char-xp" name="char-xp" value="0">
+        </div>
+    </div>
+
+    <!-- Блок с боевыми характеристиками -->
+    <div class="combat-stats-grid">
+        <div class="info-item">
+            <label for="char-hp">Хиты (HP)</label>
+            <input type="number" id="char-hp" name="char-hp" value="10">
+        </div>
+        <div class="info-item">
+            <label for="char-ac">Класс Брони (AC)</label>
+            <input type="number" id="char-ac" name="char-ac" value="10">
+        </div>
+    </div>
+        
         
         <div class="stats-grid">
             <div class="stat-card">
@@ -52,6 +89,40 @@
             <!-- Добавьте остальные навыки по аналогии -->
         </ul>
     </div>
+
+    <!-- Инвентарь и Деньги -->
+    <div class="inventory-section">
+        <h2>Инвентарь</h2>
+        <textarea id="inventory-list" rows="10" placeholder="Записывайте сюда ваши предметы..."></textarea>
+        <h3>Кошелек</h3>
+        <div class="currency-grid">
+            <div class="info-item">
+                <label for="gold-coins">Золотые (GP)</label>
+                <input type="number" id="gold-coins" value="0">
+            </div>
+            <div class="info-item">
+                <label for="silver-coins">Серебряные (SP)</label>
+                <input type="number" id="silver-coins" value="0">
+            </div>
+            <div class="info-item">
+                <label for="copper-coins">Медные (CP)</label>
+                <input type="number" id="copper-coins" value="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- Заклинания -->
+    <div class="spells-section">
+        <h2>Заклинания</h2>
+        <textarea id="spells-list" rows="10" placeholder="Записывайте сюда ваши заклинания..."></textarea>
+    </div>
+
+    <!-- Кнопки сохранения и загрузки -->
+    <div class="actions">
+        <button id="save-btn">Сохранить персонажа</button>
+        <button id="load-btn">Загрузить персонажа</button>
+        <input type="file" id="load-input" style="display: none;">
+    </div>    
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="script.js"></script>
