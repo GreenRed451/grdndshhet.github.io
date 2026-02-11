@@ -24,9 +24,12 @@ function main() {
         newCharBtn: document.getElementById('new-char-btn'), deleteCharBtn: document.getElementById('delete-char-btn')
     };
 
+    // --- Глобальное состояние ---
     let characters = []; let currentSlot = 0; let itemsDB = []; let spellsDB = [];
     const asiLevels = [4, 8, 12, 16, 19];
     const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
+
+    // --- Функции ---
 
     function getEmptyCharacter(name = "Новый персонаж") {
         return {
@@ -42,9 +45,8 @@ function main() {
         return mod >= 0 ? `+${mod}` : `${mod}`;
     }
 
-    // --- Рендеринг и сохранение ---
     function renderCharacter(char) {
-        // Убедимся, что все поля существуют, даже если загружен старый сейв
+        // Гарантируем, что все новые поля существуют, даже если загружен старый сейв
         char.money = char.money || { gp: 0, sp: 0, cp: 0 };
         char.features = char.features || [];
         char.notes = char.notes || '';
@@ -70,19 +72,22 @@ function main() {
         char.money = { gp: parseInt(elements.gp.value) || 0, sp: parseInt(elements.sp.value) || 0, cp: parseInt(elements.cp.value) || 0 };
         char.notes = elements.notes.value;
         elements.statInputs.forEach(input => char.stats[input.id] = parseInt(input.value));
-        // features, inventory, spells - мутируются напрямую, сохранять не надо
+        // features, inventory, spells мутируются напрямую, поэтому их не нужно перезаписывать здесь
     }
     
-    // --- Логика Point Buy и ASI ---
+    function saveAllCharactersToLocalStorage() {
+        saveCurrentCharacterState();
+        localStorage.setItem('dndCharacters', JSON.stringify(characters));
+        localStorage.setItem('dndCurrentSlot', currentSlot);
+    }
+    
     function updateAllCalculatedFields() {
-        // Обновляем модификаторы
         elements.statInputs.forEach(input => {
             document.getElementById(`${input.id}-mod`).textContent = calculateModifier(parseInt(input.value));
         });
 
         const level = parseInt(elements.level.value);
         
-        // Логика Point Buy
         if (level === 1) {
             elements.pointBuyCounter.style.display = 'block';
             let totalCost = 0;
@@ -91,7 +96,7 @@ function main() {
                 if (value > 15) {
                     value = 15;
                     input.value = 15;
-                    document.getElementById(`${input.id}-mod`).textContent = calculateModifier(value); // Сразу обновляем мод.
+                    document.getElementById(`${input.id}-mod`).textContent = calculateModifier(value);
                 }
                 totalCost += pointBuyCost[value] || 0;
             });
@@ -100,7 +105,6 @@ function main() {
             elements.pointBuyCounter.style.display = 'none';
         }
 
-        // Логика ASI (Bug fix: не показывать на 1-3 уровнях)
         if (level < 4) {
             elements.asiSection.classList.add('hidden');
         } else {
@@ -123,8 +127,27 @@ function main() {
         }
     }
 
-    // --- Остальные функции (без изменений, кроме shareWithGM) ---
-    // ... (loadCharacters, updateSlotSelector, renderList, recalcAC, recalcHP, loadDatabases, downloadCharacter, uploadCharacter, etc.)
+    function renderList(listElement, dataArray, arrayName) {
+        listElement.innerHTML = '';
+        dataArray.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'list-item';
+            if (typeof item === 'string') {
+                itemDiv.innerHTML = `<span>${item}</span>`;
+            } else {
+                itemDiv.innerHTML = `<span><b>${item.name}</b>: ${item.description}</span>`;
+            }
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = 'x';
+            removeBtn.onclick = () => {
+                characters[currentSlot][arrayName].splice(index, 1);
+                renderList(listElement, dataArray, arrayName);
+            };
+            itemDiv.appendChild(removeBtn);
+            listElement.appendChild(itemDiv);
+        });
+    }
+
     function shareWithGM() {
         saveCurrentCharacterState();
         const char = characters[currentSlot];
@@ -136,11 +159,114 @@ function main() {
         tg.switchInlineQuery(text, []);
     }
     
+    function loadCharactersFromLocalStorage(){
+        const data = localStorage.getItem('dndCharacters');
+        characters = data ? JSON.parse(data) : [];
+        if (characters.length === 0) characters.push(getEmptyCharacter());
+        currentSlot = parseInt(localStorage.getItem('dndCurrentSlot')) || 0;
+        if (currentSlot >= characters.length) currentSlot = 0;
+        updateSlotSelector();
+        renderCharacter(characters[currentSlot]);
+    }
+    
+    function updateSlotSelector(){
+        elements.slotSelect.innerHTML = '';
+        characters.forEach((char, index) => {
+            elements.slotSelect.add(new Option(char.name || `Слот ${index + 1}`, index));
+        });
+        elements.slotSelect.value = currentSlot;
+    }
+
+    function downloadCharacter(){
+        saveCurrentCharacterState();
+        const charData = JSON.stringify(characters[currentSlot], null, 2);
+        const blob = new Blob([charData], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${characters[currentSlot].name || "character"}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function uploadCharacter(event){
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const uploadedChar = JSON.parse(e.target.result);
+                if (uploadedChar.stats && uploadedChar.name) {
+                    characters[currentSlot] = uploadedChar;
+                    renderCharacter(uploadedChar);
+                    saveAllCharactersToLocalStorage();
+                    updateSlotSelector();
+                    alert("Персонаж загружен в текущий слот!");
+                } else { alert("Неверный формат файла!"); }
+            } catch (err) { alert("Ошибка чтения файла!"); }
+        };
+        reader.readAsText(file);
+    }
+
+    async function loadDatabases() {
+        try {
+            const [itemsRes, spellsRes] = await Promise.all([fetch('items.json'), fetch('spells.json')]);
+            itemsDB = await itemsRes.json();
+            spellsDB = await spellsRes.json();
+            itemsDB.forEach(item => elements.itemSelect.add(new Option(item.name, item.name)));
+            spellsDB.forEach(spell => elements.spellSelect.add(new Option(spell.name, spell.name)));
+        } catch (error) { console.error("DB load error:", error); }
+    }
+
     // --- Назначение обработчиков ---
+    elements.saveBtn.addEventListener("click", () => {
+        saveAllCharactersToLocalStorage();
+        tg.HapticFeedback.notificationOccurred("success");
+        alert("Персонаж сохранен в текущий слот!");
+    });
+    elements.shareBtn.addEventListener("click", shareWithGM);
+    elements.downloadBtn.addEventListener("click", downloadCharacter);
+    elements.uploadBtn.addEventListener("click", () => elements.fileUploader.click());
+    elements.fileUploader.addEventListener("change", uploadCharacter);
+    
+    elements.newCharBtn.addEventListener("click", () => {
+        const newName = prompt("Введите имя нового персонажа:", `Персонаж ${characters.length + 1}`);
+        if(newName) {
+            characters.push(getEmptyCharacter(newName));
+            currentSlot = characters.length - 1;
+            updateSlotSelector();
+            renderCharacter(characters[currentSlot]);
+        }
+    });
+
+    elements.deleteCharBtn.addEventListener("click", () => {
+        if (characters.length > 1) {
+            if (confirm(`Вы уверены, что хотите удалить персонажа "${characters[currentSlot].name}"?`)) {
+                characters.splice(currentSlot, 1);
+                currentSlot = 0;
+                loadCharactersFromLocalStorage(); // Перезагружаем, чтобы сбросить состояние
+            }
+        } else { alert("Нельзя удалить последнего персонажа!"); }
+    });
+    
+    elements.slotSelect.addEventListener("change", e => {
+        saveCurrentCharacterState(); // Сохраняем предыдущий слот перед переключением
+        currentSlot = parseInt(e.target.value);
+        localStorage.setItem('dndCurrentSlot', currentSlot);
+        renderCharacter(characters[currentSlot]);
+    });
+
     elements.statInputs.forEach(input => input.addEventListener('input', updateAllCalculatedFields));
     elements.level.addEventListener('input', updateAllCalculatedFields);
     
-    elements.addFeatureBtn.addEventListener('click', () => {
+    elements.recalcAcBtn.addEventListener("click", () => {
+        elements.armorClass.value = 10 + Math.floor((parseInt(elements.dexterity.value) - 10) / 2);
+    });
+    elements.recalcHpBtn.addEventListener("click", () => {
+        elements.hitPoints.value = 8 + Math.floor((parseInt(elements.constitution.value) - 10) / 2);
+    });
+
+    elements.addFeatureBtn.addEventListener("click", () => {
         const featureText = elements.featureInput.value.trim();
         if (featureText) {
             characters[currentSlot].features.push(featureText);
@@ -148,6 +274,23 @@ function main() {
             elements.featureInput.value = '';
         }
     });
+    
+    elements.addItemBtn.addEventListener("click", () => {
+        const item = itemsDB.find(i => i.name === elements.itemSelect.value);
+        if (item) {
+            characters[currentSlot].inventory.push(item);
+            renderList(elements.inventoryList, characters[currentSlot].inventory, 'inventory');
+        }
+    });
+    
+    elements.addSpellBtn.addEventListener("click", () => {
+        const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
+        if (spell) {
+            characters[currentSlot].spells.push(spell);
+            renderList(elements.spellList, characters[currentSlot].spells, 'spells');
+        }
+    });
 
-    // --- Полный код всех остальных функций для копирования ---
-    function loadCharacte
+    // --- Инициализация ---
+    loadDatabases().then(loadCharactersFromLocalStorage);
+}
