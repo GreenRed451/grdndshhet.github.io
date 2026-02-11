@@ -26,10 +26,9 @@ function main() {
 
     // --- Глобальное состояние ---
     let characters = []; let currentSlot = 0; let itemsDB = []; let spellsDB = [];
+    let isAcManual = false; let isHpManual = false; // Флаги для отслеживания ручного ввода
     const asiLevels = [4, 8, 12, 16, 19];
     const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
-
-    // --- Функции ---
 
     function getEmptyCharacter(name = "Новый персонаж") {
         return {
@@ -45,8 +44,8 @@ function main() {
         return mod >= 0 ? `+${mod}` : `${mod}`;
     }
 
+    // --- Рендеринг и сохранение ---
     function renderCharacter(char) {
-        // Гарантируем, что все новые поля существуют, даже если загружен старый сейв
         char.money = char.money || { gp: 0, sp: 0, cp: 0 };
         char.features = char.features || [];
         char.notes = char.notes || '';
@@ -58,6 +57,10 @@ function main() {
         elements.notes.value = char.notes;
         for (const stat in char.stats) document.getElementById(stat).value = char.stats[stat];
         
+        // Сбрасываем флаги при загрузке персонажа
+        isAcManual = false;
+        isHpManual = false;
+
         updateAllCalculatedFields();
         renderList(elements.inventoryList, char.inventory, 'inventory');
         renderList(elements.spellList, char.spells, 'spells');
@@ -72,7 +75,6 @@ function main() {
         char.money = { gp: parseInt(elements.gp.value) || 0, sp: parseInt(elements.sp.value) || 0, cp: parseInt(elements.cp.value) || 0 };
         char.notes = elements.notes.value;
         elements.statInputs.forEach(input => char.stats[input.id] = parseInt(input.value));
-        // features, inventory, spells мутируются напрямую, поэтому их не нужно перезаписывать здесь
     }
     
     function saveAllCharactersToLocalStorage() {
@@ -86,8 +88,11 @@ function main() {
             document.getElementById(`${input.id}-mod`).textContent = calculateModifier(parseInt(input.value));
         });
 
+        // *** ИСПРАВЛЕНИЕ: Авто-обновление КБ и Хитов ***
+        if (!isAcManual) recalcAC();
+        if (!isHpManual) recalcHP();
+
         const level = parseInt(elements.level.value);
-        
         if (level === 1) {
             elements.pointBuyCounter.style.display = 'block';
             let totalCost = 0;
@@ -110,14 +115,11 @@ function main() {
         } else {
             let asiCount = 0;
             asiLevels.forEach(asiLevel => { if (level >= asiLevel) asiCount++; });
-            
             let totalStatPoints = 0;
             elements.statInputs.forEach(input => totalStatPoints += parseInt(input.value));
-            
             const basePoints = 6 * 8 + 27;
             const spentAsiPoints = totalStatPoints - basePoints;
             const availableAsiPoints = (asiCount * 2) - spentAsiPoints;
-            
             if (availableAsiPoints > 0) {
                 elements.asiSection.classList.remove('hidden');
                 elements.asiPoints.textContent = availableAsiPoints;
@@ -146,6 +148,13 @@ function main() {
             itemDiv.appendChild(removeBtn);
             listElement.appendChild(itemDiv);
         });
+    }
+    
+    function recalcAC(){
+        elements.armorClass.value = 10 + Math.floor((parseInt(document.getElementById('dexterity').value) - 10) / 2);
+    }
+    function recalcHP(){
+        elements.hitPoints.value = 8 + Math.floor((parseInt(document.getElementById('constitution').value) - 10) / 2);
     }
 
     function shareWithGM() {
@@ -244,53 +253,4 @@ function main() {
             if (confirm(`Вы уверены, что хотите удалить персонажа "${characters[currentSlot].name}"?`)) {
                 characters.splice(currentSlot, 1);
                 currentSlot = 0;
-                loadCharactersFromLocalStorage(); // Перезагружаем, чтобы сбросить состояние
-            }
-        } else { alert("Нельзя удалить последнего персонажа!"); }
-    });
-    
-    elements.slotSelect.addEventListener("change", e => {
-        saveCurrentCharacterState(); // Сохраняем предыдущий слот перед переключением
-        currentSlot = parseInt(e.target.value);
-        localStorage.setItem('dndCurrentSlot', currentSlot);
-        renderCharacter(characters[currentSlot]);
-    });
-
-    elements.statInputs.forEach(input => input.addEventListener('input', updateAllCalculatedFields));
-    elements.level.addEventListener('input', updateAllCalculatedFields);
-    
-    elements.recalcAcBtn.addEventListener("click", () => {
-        elements.armorClass.value = 10 + Math.floor((parseInt(elements.dexterity.value) - 10) / 2);
-    });
-    elements.recalcHpBtn.addEventListener("click", () => {
-        elements.hitPoints.value = 8 + Math.floor((parseInt(elements.constitution.value) - 10) / 2);
-    });
-
-    elements.addFeatureBtn.addEventListener("click", () => {
-        const featureText = elements.featureInput.value.trim();
-        if (featureText) {
-            characters[currentSlot].features.push(featureText);
-            renderList(elements.featuresList, characters[currentSlot].features, 'features');
-            elements.featureInput.value = '';
-        }
-    });
-    
-    elements.addItemBtn.addEventListener("click", () => {
-        const item = itemsDB.find(i => i.name === elements.itemSelect.value);
-        if (item) {
-            characters[currentSlot].inventory.push(item);
-            renderList(elements.inventoryList, characters[currentSlot].inventory, 'inventory');
-        }
-    });
-    
-    elements.addSpellBtn.addEventListener("click", () => {
-        const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
-        if (spell) {
-            characters[currentSlot].spells.push(spell);
-            renderList(elements.spellList, characters[currentSlot].spells, 'spells');
-        }
-    });
-
-    // --- Инициализация ---
-    loadDatabases().then(loadCharactersFromLocalStorage);
-}
+                // Не и
