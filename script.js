@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', main);
 
 function main() {
     const tg = window.Telegram.WebApp;
-    tg.expand();
+    if (tg) {
+        tg.expand();
+    }
 
     // --- DOM Элементы ---
     const elements = {
@@ -48,14 +50,23 @@ function main() {
         char.money = char.money || { gp: 0, sp: 0, cp: 0 };
         char.features = char.features || [];
         char.notes = char.notes || '';
+        char.stats = char.stats || { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 };
 
-        elements.charName.value = char.name; elements.race.value = char.race; elements.class.value = char.class;
-        elements.level.value = char.level; elements.experience.value = char.experience;
-        elements.armorClass.value = char.armorClass; elements.hitPoints.value = char.hitPoints;
-        elements.gp.value = char.money.gp; elements.sp.value = char.money.sp; elements.cp.value = char.money.cp;
+        elements.charName.value = char.name;
+        elements.race.value = char.race;
+        elements.class.value = char.class;
+        elements.level.value = char.level;
+        elements.experience.value = char.experience;
+        elements.armorClass.value = char.armorClass;
+        elements.hitPoints.value = char.hitPoints;
+        elements.gp.value = char.money.gp;
+        elements.sp.value = char.money.sp;
+        elements.cp.value = char.money.cp;
         elements.notes.value = char.notes;
         for (const stat in char.stats) {
-            document.getElementById(stat).value = char.stats[stat];
+            if(document.getElementById(stat)) {
+                document.getElementById(stat).value = char.stats[stat];
+            }
         }
         
         updateAllCalculatedFields();
@@ -66,13 +77,24 @@ function main() {
     
     function saveCurrentCharacterState() {
         const char = characters[currentSlot]; if (!char) return;
-        char.name = elements.charName.value; char.race = elements.race.value; char.class = elements.class.value;
-        char.level = parseInt(elements.level.value) || 1; char.experience = parseInt(elements.experience.value) || 0;
-        char.armorClass = parseInt(elements.armorClass.value) || 10; char.hitPoints = parseInt(elements.hitPoints.value) || 8;
-        char.money = { gp: parseInt(elements.gp.value) || 0, sp: parseInt(elements.sp.value) || 0, cp: parseInt(elements.cp.value) || 0 };
+
+        char.name = elements.charName.value;
+        char.race = elements.race.value;
+        char.class = elements.class.value;
+        char.level = parseInt(elements.level.value) || 1;
+        char.experience = parseInt(elements.experience.value) || 0;
+        char.armorClass = parseInt(elements.armorClass.value) || 10;
+        char.hitPoints = parseInt(elements.hitPoints.value) || 8;
+        char.money = { 
+            gp: parseInt(elements.gp.value) || 0, 
+            sp: parseInt(elements.sp.value) || 0, 
+            cp: parseInt(elements.cp.value) || 0 
+        };
         char.notes = elements.notes.value;
         elements.statInputs.forEach(input => {
-            char.stats[input.id] = parseInt(input.value);
+            if (char.stats) {
+                char.stats[input.id] = parseInt(input.value);
+            }
         });
     }
     
@@ -84,7 +106,10 @@ function main() {
     
     function updateAllCalculatedFields() {
         elements.statInputs.forEach(input => {
-            document.getElementById(`${input.id}-mod`).textContent = calculateModifier(parseInt(input.value));
+            const modElement = document.getElementById(`${input.id}-mod`);
+            if (modElement) {
+                modElement.textContent = calculateModifier(parseInt(input.value));
+            }
         });
 
         const level = parseInt(elements.level.value);
@@ -97,7 +122,10 @@ function main() {
                 if (value > 15) {
                     value = 15;
                     input.value = 15;
-                    document.getElementById(`${input.id}-mod`).textContent = calculateModifier(value);
+                    const modElement = document.getElementById(`${input.id}-mod`);
+                    if (modElement) {
+                       modElement.textContent = calculateModifier(value);
+                    }
                 }
                 totalCost += pointBuyCost[value] || 0;
             });
@@ -126,6 +154,7 @@ function main() {
     }
 
     function renderList(listElement, dataArray, arrayName) {
+        if (!listElement || !Array.isArray(dataArray)) return;
         listElement.innerHTML = '';
         dataArray.forEach((item, index) => {
             const itemDiv = document.createElement('div');
@@ -147,6 +176,7 @@ function main() {
     }
 
     function shareWithGM() {
+        if (!tg.switchInlineQuery) return;
         saveCurrentCharacterState();
         const char = characters[currentSlot];
         let text = `*${char.name}*, ${char.race || 'раса'} ${char.class || 'класс'} ${char.level} ур.\n`;
@@ -225,7 +255,9 @@ function main() {
     // --- Назначение обработчиков ---
     elements.saveBtn.addEventListener("click", () => {
         saveAllCharactersToLocalStorage();
-        tg.HapticFeedback.notificationOccurred("success");
+        if (tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred("success");
+        }
         alert("Персонаж сохранен в текущий слот!");
     });
     elements.shareBtn.addEventListener("click", shareWithGM);
@@ -266,15 +298,24 @@ function main() {
     elements.level.addEventListener('input', updateAllCalculatedFields);
     
     elements.recalcAcBtn.addEventListener("click", () => {
-        elements.armorClass.value = 10 + Math.floor((parseInt(document.getElementById('dexterity').value) - 10) / 2);
+        const dexInput = document.getElementById('dexterity');
+        if (dexInput) {
+            elements.armorClass.value = 10 + Math.floor((parseInt(dexInput.value) - 10) / 2);
+        }
     });
     elements.recalcHpBtn.addEventListener("click", () => {
-        elements.hitPoints.value = 8 + Math.floor((parseInt(document.getElementById('constitution').value) - 10) / 2);
+        const conInput = document.getElementById('constitution');
+        if (conInput) {
+            elements.hitPoints.value = 8 + Math.floor((parseInt(conInput.value) - 10) / 2);
+        }
     });
 
     elements.addFeatureBtn.addEventListener("click", () => {
         const featureText = elements.featureInput.value.trim();
         if (featureText) {
+            if (!characters[currentSlot].features) {
+                characters[currentSlot].features = [];
+            }
             characters[currentSlot].features.push(featureText);
             renderList(elements.featuresList, characters[currentSlot].features, 'features');
             elements.featureInput.value = '';
@@ -284,6 +325,9 @@ function main() {
     elements.addItemBtn.addEventListener("click", () => {
         const item = itemsDB.find(i => i.name === elements.itemSelect.value);
         if (item) {
+            if (!characters[currentSlot].inventory) {
+                characters[currentSlot].inventory = [];
+            }
             characters[currentSlot].inventory.push(item);
             renderList(elements.inventoryList, characters[currentSlot].inventory, 'inventory');
         }
@@ -292,6 +336,9 @@ function main() {
     elements.addSpellBtn.addEventListener("click", () => {
         const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
         if (spell) {
+             if (!characters[currentSlot].spells) {
+                characters[currentSlot].spells = [];
+            }
             characters[currentSlot].spells.push(spell);
             renderList(elements.spellList, characters[currentSlot].spells, 'spells');
         }
