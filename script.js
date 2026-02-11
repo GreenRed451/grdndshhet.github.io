@@ -1,213 +1,360 @@
-// Инициализируем Web App от Telegram
-const tg = window.Telegram.WebApp;
-tg.expand(); // Расширяем приложение на весь экран
+document.addEventListener('DOMContentLoaded', main);
 
-// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ЭЛЕМЕНТЫ DOM ---
-let itemsDB = [];
-let spellsDB = [];
+function main() {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-const charNameInput = document.getElementById('charName');
-const levelInput = document.getElementById('level');
-const statInputs = document.querySelectorAll('.stat-input');
-const pointBuyCounter = document.getElementById('point-buy-counter');
+    // --- DOM Элементы ---
+    const elements = {
+        charName: document.getElementById('charName'),
+        race: document.getElementById('race'),
+        class: document.getElementById('class'),
+        level: document.getElementById('level'),
+        experience: document.getElementById('experience'),
+        armorClass: document.getElementById('armorClass'),
+        hitPoints: document.getElementById('hitPoints'),
+        recalcAcBtn: document.getElementById('recalc-ac-btn'),
+        recalcHpBtn: document.getElementById('recalc-hp-btn'),
+        statInputs: document.querySelectorAll('.stat-input'),
+        pointBuyCounter: document.getElementById('point-buy-counter'),
+        asiSection: document.getElementById('asi-section'),
+        asiPoints: document.getElementById('asi-points'),
+        inventoryList: document.getElementById('inventory-list'),
+        itemSelect: document.getElementById('item-select'),
+        addItemBtn: document.getElementById('add-item-btn'),
+        spellList: document.getElementById('spell-list'),
+        spellSelect: document.getElementById('spell-select'),
+        addSpellBtn: document.getElementById('add-spell-btn'),
+        saveBtn: document.getElementById('save-btn'),
+        shareBtn: document.getElementById('share-btn'),
+        downloadBtn: document.getElementById('download-btn'),
+        uploadBtn: document.getElementById('upload-btn'),
+        fileUploader: document.getElementById('file-uploader'),
+        slotSelect: document.getElementById('character-slot-select'),
+        newCharBtn: document.getElementById('new-char-btn'),
+        deleteCharBtn: document.getElementById('delete-char-btn')
+    };
 
-const inventoryList = document.getElementById('inventory-list');
-const itemSelect = document.getElementById('item-select');
-const addItemBtn = document.getElementById('add-item-btn');
+    // --- Глобальное состояние ---
+    let characters = [];
+    let currentSlot = 0;
+    let itemsDB = [];
+    let spellsDB = [];
+    let asiLevels = [4, 8, 12, 16, 19];
+    const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
-const spellList = document.getElementById('spell-list');
-const spellSelect = document.getElementById('spell-select');
-const addSpellBtn = document.getElementById('add-spell-btn');
+    // --- Функции ---
 
-const saveBtn = document.getElementById('save-btn');
-const shareBtn = document.getElementById('share-btn');
-
-// --- ЗАГРУЗКА ДАННЫХ (ПРЕДМЕТЫ И ЗАКЛИНАНИЯ) ---
-async function loadDatabases() {
-    try {
-        const [itemsResponse, spellsResponse] = await Promise.all([
-            fetch('items.json'),
-            fetch('spells.json')
-        ]);
-        itemsDB = await itemsResponse.json();
-        spellsDB = await spellsResponse.json();
-
-        // Заполняем выпадающие списки
-        itemsDB.forEach(item => {
-            const option = new Option(item.name, item.name);
-            itemSelect.add(option);
-        });
-        spellsDB.forEach(spell => {
-            const option = new Option(spell.name, spell.name);
-            spellSelect.add(option);
-        });
-    } catch (error) {
-        console.error("Не удалось загрузить базы данных:", error);
+    function getEmptyCharacter(name = "Новый персонаж") {
+        return {
+            name: name,
+            race: '',
+            class: '',
+            level: 1,
+            experience: 0,
+            armorClass: 10,
+            hitPoints: 8,
+            stats: { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 },
+            inventory: [],
+            spells: []
+        };
     }
-}
 
-// --- УПРАВЛЕНИЕ ПЕРСОНАЖЕМ (СОХРАНЕНИЕ/ЗАГРУЗКА) ---
-let character = {
-    name: '',
-    level: 1,
-    stats: { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 },
-    inventory: [],
-    spells: []
-};
+    function calculateModifier(statValue) {
+        const mod = Math.floor((statValue - 10) / 2);
+        return mod >= 0 ? `+${mod}` : mod;
+    }
 
-function saveCharacter() {
-    character.name = charNameInput.value;
-    character.level = parseInt(levelInput.value) || 1;
-    statInputs.forEach(input => {
-        character.stats[input.id] = parseInt(input.value) || 8;
-    });
-    // inventory и spells уже обновляются при добавлении/удалении
-
-    localStorage.setItem('dndCharacter', JSON.stringify(character));
-    tg.HapticFeedback.notificationOccurred('success');
-    alert('Персонаж сохранен!');
-}
-
-function loadCharacter() {
-    const savedData = localStorage.getItem('dndCharacter');
-    if (savedData) {
-        character = JSON.parse(savedData);
-        
-        charNameInput.value = character.name;
-        levelInput.value = character.level;
-        statInputs.forEach(input => {
-            input.value = character.stats[input.id];
+    function updateAllModifiers() {
+        elements.statInputs.forEach(input => {
+            const statName = input.id;
+            const modSpan = document.getElementById(`${statName}-mod`);
+            if (modSpan) {
+                modSpan.textContent = calculateModifier(parseInt(input.value));
+            }
         });
-        
-        renderInventory();
-        renderSpells();
+    }
+
+    function renderCharacter(char) {
+        elements.charName.value = char.name;
+        elements.race.value = char.race;
+        elements.class.value = char.class;
+        elements.level.value = char.level;
+        elements.experience.value = char.experience;
+        elements.armorClass.value = char.armorClass;
+        elements.hitPoints.value = char.hitPoints;
+        for (const stat in char.stats) {
+            document.getElementById(stat).value = char.stats[stat];
+        }
+        updateAllModifiers();
         updatePointBuy();
-    }
-}
-
-// --- ЛОГИКА ИНВЕНТАРЯ И ЗАКЛИНАНИЙ ---
-function renderInventory() {
-    inventoryList.innerHTML = '';
-    character.inventory.forEach((item, index) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'list-item';
-        itemDiv.innerHTML = `<span><b>${item.name}</b>: ${item.description}</span>`;
-        const removeBtn = document.createElement('button');
-        removeBtn.innerText = 'x';
-        removeBtn.onclick = () => {
-            character.inventory.splice(index, 1);
-            renderInventory();
-        };
-        itemDiv.appendChild(removeBtn);
-        inventoryList.appendChild(itemDiv);
-    });
-}
-
-function renderSpells() {
-    spellList.innerHTML = '';
-    character.spells.forEach((spell, index) => {
-        const spellDiv = document.createElement('div');
-        spellDiv.className = 'list-item';
-        spellDiv.innerHTML = `<span><b>${spell.name}</b>: ${spell.description}</span>`;
-        const removeBtn = document.createElement('button');
-        removeBtn.innerText = 'x';
-        removeBtn.onclick = () => {
-            character.spells.splice(index, 1);
-            renderSpells();
-        };
-        spellDiv.appendChild(removeBtn);
-        spellList.appendChild(spellDiv);
-    });
-}
-
-addItemBtn.addEventListener('click', () => {
-    const selectedItemName = itemSelect.value;
-    const itemData = itemsDB.find(item => item.name === selectedItemName);
-    if (itemData) {
-        character.inventory.push(itemData);
+        checkASI();
         renderInventory();
-    }
-});
-
-addSpellBtn.addEventListener('click', () => {
-    const selectedSpellName = spellSelect.value;
-    const spellData = spellsDB.find(spell => spell.name === selectedSpellName);
-    if (spellData) {
-        character.spells.push(spellData);
         renderSpells();
     }
-});
+    
+    function saveCurrentCharacterState() {
+        const char = characters[currentSlot];
+        if (!char) return;
 
-// --- ЛОГИКА ЛИМИТОВ ХАРАКТЕРИСТИК (POINT BUY) ---
-const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
+        char.name = elements.charName.value;
+        char.race = elements.race.value;
+        char.class = elements.class.value;
+        char.level = parseInt(elements.level.value) || 1;
+        char.experience = parseInt(elements.experience.value) || 0;
+        char.armorClass = parseInt(elements.armorClass.value) || 10;
+        char.hitPoints = parseInt(elements.hitPoints.value) || 8;
+        elements.statInputs.forEach(input => {
+            char.stats[input.id] = parseInt(input.value);
+        });
+        
+        // inventory & spells обновляются отдельно
+    }
 
-function updatePointBuy() {
-    if (character.level !== 1) {
-        pointBuyCounter.textContent = 'Распределение очков доступно только на 1 уровне.';
-        statInputs.forEach(input => input.max = 20); // Снимаем ограничение после 1 уровня
-        return;
+    function saveAllCharacters() {
+        saveCurrentCharacterState();
+        localStorage.setItem('dndCharacters', JSON.stringify(characters));
+        tg.HapticFeedback.notificationOccurred('success');
+        alert('Персонаж сохранен в текущий слот!');
     }
     
-    let totalCost = 0;
-    statInputs.forEach(input => {
-        const value = parseInt(input.value);
-        if (value > 15) { // Ограничение Point Buy
-            input.value = 15;
+    function loadCharacters() {
+        const data = localStorage.getItem('dndCharacters');
+        if (data) {
+            characters = JSON.parse(data);
+            if (characters.length === 0) {
+                characters.push(getEmptyCharacter());
+            }
+        } else {
+            characters.push(getEmptyCharacter());
         }
-        totalCost += pointBuyCost[parseInt(input.value)] || 0;
+        currentSlot = parseInt(localStorage.getItem('dndCurrentSlot')) || 0;
+        if (currentSlot >= characters.length) currentSlot = 0;
+        
+        updateSlotSelector();
+        renderCharacter(characters[currentSlot]);
+    }
+
+    function updateSlotSelector() {
+        elements.slotSelect.innerHTML = '';
+        characters.forEach((char, index) => {
+            const option = new Option(char.name || `Слот ${index + 1}`, index);
+            elements.slotSelect.appendChild(option);
+        });
+        elements.slotSelect.value = currentSlot;
+    }
+    
+    // ... (inventory and spell rendering functions from previous script)
+     function renderInventory() {
+        const char = characters[currentSlot];
+        elements.inventoryList.innerHTML = '';
+        char.inventory.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'list-item';
+            itemDiv.innerHTML = `<span><b>${item.name}</b>: ${item.description}</span>`;
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = 'x';
+            removeBtn.onclick = () => {
+                char.inventory.splice(index, 1);
+                renderInventory();
+            };
+            itemDiv.appendChild(removeBtn);
+            elements.inventoryList.appendChild(itemDiv);
+        });
+    }
+
+    function renderSpells() {
+        const char = characters[currentSlot];
+        elements.spellList.innerHTML = '';
+        char.spells.forEach((spell, index) => {
+            const spellDiv = document.createElement('div');
+            spellDiv.className = 'list-item';
+            spellDiv.innerHTML = `<span><b>${spell.name}</b>: ${spell.description}</span>`;
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = 'x';
+            removeBtn.onclick = () => {
+                char.spells.splice(index, 1);
+                renderSpells();
+            };
+            spellDiv.appendChild(removeBtn);
+            elements.spellList.appendChild(spellDiv);
+        });
+    }
+
+    // --- Логика Point Buy и ASI ---
+    function updatePointBuy() {
+        const level = parseInt(elements.level.value);
+        if (level !== 1) {
+            elements.pointBuyCounter.textContent = 'Распределение очков доступно только на 1 уровне.';
+            return;
+        }
+        let totalCost = 0;
+        elements.statInputs.forEach(input => {
+            const value = parseInt(input.value);
+            if (value > 15) input.value = 15;
+            totalCost += pointBuyCost[parseInt(input.value)] || 0;
+        });
+        const pointsLeft = 27 - totalCost;
+        elements.pointBuyCounter.textContent = `Очков для распределения: ${pointsLeft}`;
+        elements.pointBuyCounter.style.color = pointsLeft < 0 ? 'red' : 'black';
+    }
+
+    function checkASI() {
+        const level = parseInt(elements.level.value);
+        let asiCount = 0;
+        asiLevels.forEach(asiLevel => {
+            if (level >= asiLevel) asiCount++;
+        });
+        
+        let totalStatPoints = 0;
+        elements.statInputs.forEach(input => totalStatPoints += parseInt(input.value));
+        
+        const basePoints = 6 * 8 + 27; // 8 in each stat + 27 points for point buy
+        const spentAsiPoints = totalStatPoints - basePoints;
+        const availableAsiPoints = (asiCount * 2) - spentAsiPoints;
+        
+        if (availableAsiPoints > 0) {
+            elements.asiSection.classList.remove('hidden');
+            elements.asiPoints.textContent = availableAsiPoints;
+        } else {
+            elements.asiSection.classList.add('hidden');
+        }
+    }
+    
+    // --- Расчеты ХП и КД ---
+    function recalcAC() {
+        const dexMod = Math.floor((parseInt(elements.statInputs[1].value) - 10) / 2);
+        elements.armorClass.value = 10 + dexMod;
+    }
+    
+    function recalcHP() {
+        const conMod = Math.floor((parseInt(elements.statInputs[2].value) - 10) / 2);
+        // Базовая формула, можно усложнить, добавив кость хитов класса
+        elements.hitPoints.value = 8 + conMod; 
+    }
+
+    // --- Загрузка/Скачивание и Поделиться ---
+    async function loadDatabases() {
+        try {
+            const [itemsRes, spellsRes] = await Promise.all([fetch('items.json'), fetch('spells.json')]);
+            itemsDB = await itemsRes.json();
+            spellsDB = await spellsRes.json();
+            itemsDB.forEach(item => elements.itemSelect.add(new Option(item.name, item.name)));
+            spellsDB.forEach(spell => elements.spellSelect.add(new Option(spell.name, spell.name)));
+        } catch (error) { console.error("DB load error:", error); }
+    }
+
+    function downloadCharacter() {
+        saveCurrentCharacterState();
+        const charData = JSON.stringify(characters[currentSlot], null, 2);
+        const blob = new Blob([charData], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${characters[currentSlot].name || 'character'}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    function uploadCharacter(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const uploadedChar = JSON.parse(e.target.result);
+                // Простая валидация
+                if (uploadedChar.stats && uploadedChar.name) {
+                    characters[currentSlot] = uploadedChar;
+                    renderCharacter(uploadedChar);
+                    saveAllCharacters(); // Сохраняем в localStorage
+                    updateSlotSelector();
+                    alert('Персонаж загружен в текущий слот!');
+                } else {
+                    alert('Неверный формат файла!');
+                }
+            } catch (err) {
+                alert('Ошибка чтения файла!');
+            }
+        };
+        reader.readAsText(file);
+    }
+    
+    function shareWithGM() {
+        saveCurrentCharacterState();
+        const charDataString = JSON.stringify(characters[currentSlot]);
+        // Используем switchInlineQuery - это лучший способ для "поделиться"
+        tg.switchInlineQuery(charDataString, []);
+    }
+
+    // --- Назначение обработчиков ---
+    elements.saveBtn.addEventListener('click', saveAllCharacters);
+    elements.shareBtn.addEventListener('click', shareWithGM);
+    elements.downloadBtn.addEventListener('click', downloadCharacter);
+    elements.uploadBtn.addEventListener('click', () => elements.fileUploader.click());
+    elements.fileUploader.addEventListener('change', uploadCharacter);
+
+    elements.newCharBtn.addEventListener('click', () => {
+        const newName = prompt("Введите имя нового персонажа:", `Персонаж ${characters.length + 1}`);
+        if(newName) {
+            characters.push(getEmptyCharacter(newName));
+            currentSlot = characters.length - 1;
+            localStorage.setItem('dndCurrentSlot', currentSlot);
+            updateSlotSelector();
+            renderCharacter(characters[currentSlot]);
+        }
     });
 
-    const pointsLeft = 27 - totalCost;
-    pointBuyCounter.textContent = `Очков для распределения: ${pointsLeft}`;
-    
-    if (pointsLeft < 0) {
-        pointBuyCounter.style.color = 'red';
-    } else {
-        pointBuyCounter.style.color = 'black';
-    }
-}
-
-// --- ФУНКЦИЯ "ПОДЕЛИТЬСЯ С ГМ" ---
-function shareWithGM() {
-    saveCharacter(); // Убедимся, что делимся актуальными данными
-    const characterDataString = JSON.stringify(character);
-    const encodedData = btoa(characterDataString); // Кодируем в Base64 для безопасности в URL
-    
-    const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
-    
-    // Используем API Telegram для отправки текста в чат
-    tg.sendData(`Вот мой лист персонажа: ${shareUrl}`);
-    
-    // Если sendData не работает (старая версия), можно просто показать ссылку
-    // alert(`Скопируйте и отправьте ГМу:\n${shareUrl}`);
-}
-
-function loadFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const data = urlParams.get('data');
-    if (data) {
-        try {
-            const decodedData = atob(data); // Декодируем из Base64
-            localStorage.setItem('dndCharacter', decodedData); // Сохраняем полученные данные
-            loadCharacter(); // Загружаем их в интерфейс
-            alert('Лист персонажа загружен по ссылке!');
-        } catch (e) {
-            console.error("Ошибка при загрузке данных из URL:", e);
-            loadCharacter(); // Загружаем обычные данные, если URL неверный
+    elements.deleteCharBtn.addEventListener('click', () => {
+        if (characters.length > 1) {
+            if (confirm(`Вы уверены, что хотите удалить персонажа "${characters[currentSlot].name}"?`)) {
+                characters.splice(currentSlot, 1);
+                currentSlot = 0;
+                localStorage.setItem('dndCurrentSlot', currentSlot);
+                loadCharacters();
+            }
+        } else {
+            alert("Нельзя удалить последнего персонажа!");
         }
-    } else {
-        loadCharacter(); // Загружаем из localStorage, если в URL нет данных
-    }
+    });
+    
+    elements.slotSelect.addEventListener('change', (e) => {
+        saveCurrentCharacterState(); // Сохраняем изменения в текущем слоте перед переключением
+        currentSlot = parseInt(e.target.value);
+        localStorage.setItem('dndCurrentSlot', currentSlot);
+        renderCharacter(characters[currentSlot]);
+    });
+    
+    elements.statInputs.forEach(input => input.addEventListener('input', () => {
+        updateAllModifiers();
+        updatePointBuy();
+        checkASI();
+    }));
+    elements.level.addEventListener('input', () => {
+        updatePointBuy();
+        checkASI();
+    });
+
+    elements.recalcAcBtn.addEventListener('click', recalcAC);
+    elements.recalcHpBtn.addEventListener('click', recalcHP);
+    
+    elements.addItemBtn.addEventListener('click', () => {
+        const item = itemsDB.find(i => i.name === elements.itemSelect.value);
+        if (item) {
+            characters[currentSlot].inventory.push(item);
+            renderInventory();
+        }
+    });
+
+    elements.addSpellBtn.addEventListener('click', () => {
+        const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
+        if (spell) {
+            characters[currentSlot].spells.push(spell);
+            renderSpells();
+        }
+    });
+
+    // --- Инициализация ---
+    loadDatabases().then(loadCharacters);
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ---
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadDatabases(); // Сначала грузим базы
-    loadFromURL();         // Потом грузим персонажа (из URL или localStorage)
-
-    // Добавляем слушатели событий
-    saveBtn.addEventListener('click', saveCharacter);
-    shareBtn.addEventListener('click', shareWithGM);
-    statInputs.forEach(input => input.addEventListener('input', updatePointBuy));
-    levelInput.addEventListener('input', updatePointBuy);
-});
