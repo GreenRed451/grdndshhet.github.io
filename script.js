@@ -37,7 +37,7 @@ function main() {
             name, race: '', class: '', level: 1, experience: 0, armorClass: 10, hitPoints: 8,
             money: { gp: 0, sp: 0, cp: 0 },
             stats: { ...baseStats },
-            level1Stats: { ...baseStats }, // *** ИСПРАВЛЕНИЕ: Добавляем поле для базовых статов 1-го уровня
+            level1Stats: { ...baseStats },
             features: [], inventory: [], spells: [], notes: ''
         };
     }
@@ -53,7 +53,6 @@ function main() {
         char.features = char.features || [];
         char.notes = char.notes || '';
         char.stats = char.stats || { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 };
-        // *** ИСПРАВЛЕНИЕ: Обеспечиваем обратную совместимость для старых персонажей
         char.level1Stats = char.level1Stats || { ...char.stats };
 
         elements.charName.value = char.name;
@@ -101,7 +100,6 @@ function main() {
             }
         });
         
-        // *** ИСПРАВЛЕНИЕ: Если мы на 1-м уровне, обновляем "базовые" статы
         if (char.level === 1) {
             char.level1Stats = { ...char.stats };
         }
@@ -114,6 +112,9 @@ function main() {
     }
     
     function updateAllCalculatedFields() {
+        const char = characters[currentSlot];
+        if (!char) return;
+
         elements.statInputs.forEach(input => {
             const modElement = document.getElementById(`${input.id}-mod`);
             if (modElement) {
@@ -137,13 +138,17 @@ function main() {
                     }
                 }
                 totalCost += pointBuyCost[value] || 0;
+                
+                // *** КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Постоянно обновляем Lvl1 статы, пока на 1-м уровне
+                if (char.level1Stats) {
+                    char.level1Stats[input.id] = value;
+                }
             });
             elements.pointBuyCounter.textContent = `Очков для распределения (Point Buy): ${27 - totalCost}`;
         } else {
             elements.pointBuyCounter.style.display = 'none';
         }
 
-        // *** ИСПРАВЛЕНИЕ: Полностью переписанная логика ASI
         if (level < 4) {
             elements.asiSection.classList.add('hidden');
         } else {
@@ -153,17 +158,14 @@ function main() {
             
             let currentStatTotal = 0;
             elements.statInputs.forEach(input => { currentStatTotal += parseInt(input.value); });
-            
-            const char = characters[currentSlot];
-            if (!char.level1Stats) { // Обратная совместимость
-                char.level1Stats = { ...char.stats };
-            }
 
             let level1StatTotal = 0;
-            for (const stat in char.level1Stats) {
-                level1StatTotal += char.level1Stats[stat];
+            if (char.level1Stats) {
+                for (const stat in char.level1Stats) {
+                    level1StatTotal += char.level1Stats[stat];
+                }
             }
-
+            
             const asiPointsSpent = currentStatTotal - level1StatTotal;
             const availableAsiPoints = totalAsiPointsEarned - asiPointsSpent;
             
@@ -199,7 +201,7 @@ function main() {
     }
 
     function shareWithGM() {
-        if (!tg.switchInlineQuery) return;
+        if (!tg || !tg.switchInlineQuery) return;
         saveCurrentCharacterState();
         const char = characters[currentSlot];
         let text = `*${char.name}*, ${char.race || 'раса'} ${char.class || 'класс'} ${char.level} ур.\n`;
@@ -278,7 +280,7 @@ function main() {
     // --- Назначение обработчиков ---
     elements.saveBtn.addEventListener("click", () => {
         saveAllCharactersToLocalStorage();
-        if (tg.HapticFeedback) {
+        if (tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred("success");
         }
         alert("Персонаж сохранен в текущий слот!");
@@ -334,39 +336,4 @@ function main() {
     });
 
     elements.addFeatureBtn.addEventListener("click", () => {
-        const featureText = elements.featureInput.value.trim();
-        if (featureText) {
-            if (!characters[currentSlot].features) {
-                characters[currentSlot].features = [];
-            }
-            characters[currentSlot].features.push(featureText);
-            renderList(elements.featuresList, characters[currentSlot].features, 'features');
-            elements.featureInput.value = '';
-        }
-    });
-    
-    elements.addItemBtn.addEventListener("click", () => {
-        const item = itemsDB.find(i => i.name === elements.itemSelect.value);
-        if (item) {
-            if (!characters[currentSlot].inventory) {
-                characters[currentSlot].inventory = [];
-            }
-            characters[currentSlot].inventory.push(item);
-            renderList(elements.inventoryList, characters[currentSlot].inventory, 'inventory');
-        }
-    });
-    
-    elements.addSpellBtn.addEventListener("click", () => {
-        const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
-        if (spell) {
-             if (!characters[currentSlot].spells) {
-                characters[currentSlot].spells = [];
-            }
-            characters[currentSlot].spells.push(spell);
-            renderList(elements.spellList, characters[currentSlot].spells, 'spells');
-        }
-    });
-
-    // --- Инициализация ---
-    loadDatabases().then(loadCharactersFromLocalStorage);
-}
+        const
