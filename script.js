@@ -1,4 +1,41 @@
+// Этот обработчик ждет, пока вся HTML-страница полностью загрузится
 document.addEventListener('DOMContentLoaded', () => {
+
+    // --- Старый код для кнопок характеристик ---
+    // Он должен быть здесь, внутри основного обработчика
+    document.querySelectorAll('.stat').forEach(statElement => {
+        const valueElement = statElement.querySelector('.value');
+        const modifierElement = statElement.querySelector('.modifier');
+        const increaseButton = statElement.querySelector('.increase');
+        const decreaseButton = statElement.querySelector('.decrease');
+
+        const updateModifier = () => {
+            const value = parseInt(valueElement.textContent);
+            const modifier = Math.floor((value - 10) / 2);
+            modifierElement.textContent = (modifier >= 0 ? '+' : '') + modifier;
+        };
+
+        increaseButton.addEventListener('click', () => {
+            let value = parseInt(valueElement.textContent);
+            value++;
+            valueElement.textContent = value;
+            updateModifier();
+        });
+
+        decreaseButton.addEventListener('click', () => {
+            let value = parseInt(valueElement.textContent);
+            value--;
+            valueElement.textContent = value;
+            updateModifier();
+        });
+
+        // Инициализация модификатора при загрузке
+        updateModifier();
+    });
+
+
+    // --- Новый код для сохранения и загрузки ---
+    // Он должен быть здесь же, как отдельный независимый блок
     const saveBtn = document.getElementById('save-btn');
     const loadBtn = document.getElementById('load-btn');
     const loadInput = document.getElementById('load-input');
@@ -18,10 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
             gold: document.getElementById('gold-coins').value,
             silver: document.getElementById('silver-coins').value,
             copper: document.getElementById('copper-coins').value,
-            // Добавьте сюда сохранение старых характеристик (Сила, Ловкость и т.д.)
-            // Например:
-            // strength: document.getElementById('strength-stat').value, 
+            stats: {} // Создаем объект для характеристик
         };
+        
+        // Собираем все характеристики
+        document.querySelectorAll('.stat').forEach(statElement => {
+            const statName = statElement.querySelector('h2').textContent.toLowerCase();
+            const statValue = statElement.querySelector('.value').textContent;
+            characterData.stats[statName] = statValue;
+        });
 
         const dataStr = JSON.stringify(characterData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -29,8 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const link = document.createElement('a');
         link.href = url;
-        // Сохраняем файл с именем персонажа, если оно есть
-        const fileName = characterData.name.trim() ? `${characterData.name}.json` : 'character_sheet.json';
+        const fileName = characterData.name.trim() ? `${characterData.name.replace(/[^a-z0-9]/gi, '_')}.json` : 'character_sheet.json';
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
@@ -42,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Функции Загрузки ---
     loadBtn.addEventListener('click', () => {
-        // Имитируем клик по скрытому полю для выбора файла
         loadInput.click();
     });
 
@@ -57,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const loadedData = JSON.parse(e.target.result);
 
-                // Заполняем поля данными из файла
                 document.getElementById('char-name').value = loadedData.name || '';
                 document.getElementById('char-race').value = loadedData.race || '';
                 document.getElementById('char-class').value = loadedData.class || '';
@@ -70,41 +109,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('gold-coins').value = loadedData.gold || '0';
                 document.getElementById('silver-coins').value = loadedData.silver || '0';
                 document.getElementById('copper-coins').value = loadedData.copper || '0';
+
+                // Загружаем характеристики
+                if (loadedData.stats) {
+                    document.querySelectorAll('.stat').forEach(statElement => {
+                        const statName = statElement.querySelector('h2').textContent.toLowerCase();
+                        if (loadedData.stats[statName]) {
+                            statElement.querySelector('.value').textContent = loadedData.stats[statName];
+                            // Обновляем модификатор после загрузки
+                            const value = parseInt(loadedData.stats[statName]);
+                            const modifier = Math.floor((value - 10) / 2);
+                            statElement.querySelector('.modifier').textContent = (modifier >= 0 ? '+' : '') + modifier;
+                        }
+                    });
+                }
                 
-
-// Функция для расчета модификатора по значению характеристики
-function getModifier(statValue) {
-    return Math.floor((statValue - 10) / 2);
-}
-
-// Главная функция для перерасчета всех значений
-function calculateAll() {
-    // Обновляем модификаторы характеристик
-    const stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-    const modifiers = {};
-
-    stats.forEach(stat => {
-        const value = parseInt(document.getElementById(stat).value, 10);
-        const mod = getModifier(value);
-        document.getElementById(`${stat}-mod`).innerText = mod >= 0 ? `+${mod}` : mod;
-        modifiers[stat] = mod;
-    });
-
-    // Обновляем навыки
-    document.getElementById('acrobatics-skill').innerText = modifiers['dexterity'] >= 0 ? `+${modifiers['dexterity']}` : modifiers['dexterity'];
-    document.getElementById('athletics-skill').innerText = modifiers['strength'] >= 0 ? `+${modifiers['strength']}` : modifiers['strength'];
-    document.getElementById('performance-skill').innerText = modifiers['charisma'] >= 0 ? `+${modifiers['charisma']}` : modifiers['charisma'];
-    document.getElementById('arcana-skill').innerText = modifiers['intelligence'] >= 0 ? `+${modifiers['intelligence']}` : modifiers['intelligence'];
-    // ... и так для всех остальных навыков
-}
-
-
-// Инициализация Web App и первоначальный расчет
-window.onload = function() {
-    let tg = window.Telegram.WebApp;
-    tg.expand(); // Расширяем Web App на весь экран
-    calculateAll(); // Выполняем первый расчет при загрузке
-};
                 alert('Лист персонажа успешно загружен!');
             } catch (error) {
                 alert('Ошибка! Не удалось прочитать файл. Убедитесь, что это корректный JSON файл персонажа.');
@@ -113,8 +132,6 @@ window.onload = function() {
         };
         reader.readAsText(file);
         
-        // Сбрасываем значение input, чтобы можно было загружать тот же файл повторно
         event.target.value = '';
     });
 });
-                
