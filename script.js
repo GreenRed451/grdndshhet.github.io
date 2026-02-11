@@ -1,6 +1,4 @@
-document.addEventListener('DOMContentLoaded', main);
-
-function main() {
+document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     if (tg) {
         tg.expand();
@@ -47,7 +45,6 @@ function main() {
         return mod >= 0 ? `+${mod}` : `${mod}`;
     }
 
-    // --- Рендеринг и сохранение ---
     function renderCharacter(char) {
         char.money = char.money || { gp: 0, sp: 0, cp: 0 };
         char.features = char.features || [];
@@ -139,7 +136,6 @@ function main() {
                 }
                 totalCost += pointBuyCost[value] || 0;
                 
-                // *** КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Постоянно обновляем Lvl1 статы, пока на 1-м уровне
                 if (char.level1Stats) {
                     char.level1Stats[input.id] = value;
                 }
@@ -164,6 +160,8 @@ function main() {
                 for (const stat in char.level1Stats) {
                     level1StatTotal += char.level1Stats[stat];
                 }
+            } else { // Fallback for old characters
+                level1StatTotal = currentStatTotal; 
             }
             
             const asiPointsSpent = currentStatTotal - level1StatTotal;
@@ -191,7 +189,7 @@ function main() {
             }
             const removeBtn = document.createElement('button');
             removeBtn.innerText = 'x';
-            removeBtn.onclick = () => {
+            removeBtn.onclick = function() {
                 characters[currentSlot][arrayName].splice(index, 1);
                 renderList(listElement, dataArray, arrayName);
             };
@@ -250,7 +248,7 @@ function main() {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = e => {
+        reader.onload = function(e) {
             try {
                 const uploadedChar = JSON.parse(e.target.result);
                 if (uploadedChar.stats && uploadedChar.name) {
@@ -278,7 +276,7 @@ function main() {
     }
 
     // --- Назначение обработчиков ---
-    elements.saveBtn.addEventListener("click", () => {
+    elements.saveBtn.addEventListener("click", function() {
         saveAllCharactersToLocalStorage();
         if (tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred("success");
@@ -287,10 +285,10 @@ function main() {
     });
     elements.shareBtn.addEventListener("click", shareWithGM);
     elements.downloadBtn.addEventListener("click", downloadCharacter);
-    elements.uploadBtn.addEventListener("click", () => elements.fileUploader.click());
+    elements.uploadBtn.addEventListener("click", function() { elements.fileUploader.click(); });
     elements.fileUploader.addEventListener("change", uploadCharacter);
     
-    elements.newCharBtn.addEventListener("click", () => {
+    elements.newCharBtn.addEventListener("click", function() {
         const newName = prompt("Введите имя нового персонажа:", `Персонаж ${characters.length + 1}`);
         if(newName) {
             characters.push(getEmptyCharacter(newName));
@@ -300,7 +298,7 @@ function main() {
         }
     });
 
-    elements.deleteCharBtn.addEventListener("click", () => {
+    elements.deleteCharBtn.addEventListener("click", function() {
         if (characters.length > 1) {
             if (confirm(`Вы уверены, что хотите удалить персонажа "${characters[currentSlot].name}"?`)) {
                 characters.splice(currentSlot, 1);
@@ -312,7 +310,7 @@ function main() {
         } else { alert("Нельзя удалить последнего персонажа!"); }
     });
     
-    elements.slotSelect.addEventListener("change", e => {
+    elements.slotSelect.addEventListener("change", function(e) {
         saveCurrentCharacterState();
         currentSlot = parseInt(e.target.value);
         localStorage.setItem('dndCurrentSlot', currentSlot);
@@ -322,18 +320,53 @@ function main() {
     elements.statInputs.forEach(input => input.addEventListener('input', updateAllCalculatedFields));
     elements.level.addEventListener('input', updateAllCalculatedFields);
     
-    elements.recalcAcBtn.addEventListener("click", () => {
+    elements.recalcAcBtn.addEventListener("click", function() {
         const dexInput = document.getElementById('dexterity');
         if (dexInput) {
             elements.armorClass.value = 10 + Math.floor((parseInt(dexInput.value) - 10) / 2);
         }
     });
-    elements.recalcHpBtn.addEventListener("click", () => {
+    elements.recalcHpBtn.addEventListener("click", function() {
         const conInput = document.getElementById('constitution');
         if (conInput) {
             elements.hitPoints.value = 8 + Math.floor((parseInt(conInput.value) - 10) / 2);
         }
     });
 
-    elements.addFeatureBtn.addEventListener("click", () => {
-        const
+    elements.addFeatureBtn.addEventListener("click", function() {
+        const featureText = elements.featureInput.value.trim();
+        if (featureText) {
+            if (!characters[currentSlot].features) {
+                characters[currentSlot].features = [];
+            }
+            characters[currentSlot].features.push(featureText);
+            renderList(elements.featuresList, characters[currentSlot].features, 'features');
+            elements.featureInput.value = '';
+        }
+    });
+    
+    elements.addItemBtn.addEventListener("click", function() {
+        const item = itemsDB.find(i => i.name === elements.itemSelect.value);
+        if (item) {
+            if (!characters[currentSlot].inventory) {
+                characters[currentSlot].inventory = [];
+            }
+            characters[currentSlot].inventory.push(item);
+            renderList(elements.inventoryList, characters[currentSlot].inventory, 'inventory');
+        }
+    });
+    
+    elements.addSpellBtn.addEventListener("click", function() {
+        const spell = spellsDB.find(s => s.name === elements.spellSelect.value);
+        if (spell) {
+             if (!characters[currentSlot].spells) {
+                characters[currentSlot].spells = [];
+            }
+            characters[currentSlot].spells.push(spell);
+            renderList(elements.spellList, characters[currentSlot].spells, 'spells');
+        }
+    });
+
+    // --- Инициализация ---
+    loadDatabases().then(loadCharactersFromLocalStorage);
+});
