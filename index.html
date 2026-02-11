@@ -3,142 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DnD Character Sheet</title>
+    <title>Лист персонажа D&D</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Лист персонажа DnD</h1>
+    <div class="container">
+        <h1>Лист персонажа D&D 5e</h1>
 
-    <!-- Блок с основной информацией -->
-    <div class="character-info-grid">
-        <div class="info-item">
-            <label for="char-name">Имя персонажа</label>
-            <input type="text" id="char-name" name="char-name">
+        <!-- Основная информация -->
+        <div class="section">
+            <h2>Основная информация</h2>
+            <input type="text" id="charName" placeholder="Имя персонажа">
+            <input type="number" id="level" placeholder="Уровень" min="1" max="20">
         </div>
-        <div class="info-item">
-            <label for="char-race">Раса</label>
-            <input type="text" id="char-race" name="char-race">
+
+        <!-- Характеристики -->
+        <div class="section">
+            <h2>Характеристики</h2>
+            <div class="stats-grid">
+                <div class="stat">
+                    <label for="strength">Сила</label>
+                    <input type="number" id="strength" class="stat-input" value="10" min="1" max="20">
+                </div>
+                <div class="stat">
+                    <label for="dexterity">Ловкость</label>
+                    <input type="number" id="dexterity" class="stat-input" value="10" min="1" max="20">
+                </div>
+                <div class="stat">
+                    <label for="constitution">Телосложение</label>
+                    <input type="number" id="constitution" class="stat-input" value="10" min="1" max="20">
+                </div>
+                <div class="stat">
+                    <label for="intelligence">Интеллект</label>
+                    <input type="number" id="intelligence" class="stat-input" value="10" min="1" max="20">
+                </div>
+                <div class="stat">
+                    <label for="wisdom">Мудрость</label>
+                    <input type="number" id="wisdom" class="stat-input" value="10" min="1" max="20">
+                </div>
+                <div class="stat">
+                    <label for="charisma">Харизма</label>
+                    <input type="number" id="charisma" class="stat-input" value="10" min="1" max="20">
+                </div>
+            </div>
+            <p id="point-buy-counter">Очков для распределения: 27</p>
         </div>
-        <div class="info-item">
-            <label for="char-class">Класс</label>
-            <input type="text" id="char-class" name="char-class">
+
+        <!-- Инвентарь -->
+        <div class="section">
+            <h2>Инвентарь</h2>
+            <div id="inventory-list"></div>
+            <select id="item-select"></select>
+            <button id="add-item-btn">Добавить предмет</button>
         </div>
-        <div class="info-item">
-            <label for="char-level">Уровень</label>
-            <input type="number" id="char-level" name="char-level" value="1">
+
+        <!-- Заклинания -->
+        <div class="section">
+            <h2>Книга заклинаний</h2>
+            <div id="spell-list"></div>
+            <select id="spell-select"></select>
+            <button id="add-spell-btn">Добавить заклинание</button>
         </div>
-        <div class="info-item">
-            <label for="char-xp">Опыт (XP)</label>
-            <input type="number" id="char-xp" name="char-xp" value="0">
+        
+        <!-- Кнопки управления -->
+        <div class="section actions">
+             <button id="save-btn">Сохранить</button>
+             <button id="share-btn">Поделиться с ГМ</button>
         </div>
+
     </div>
-
-    <!-- Блок с боевыми характеристиками -->
-    <div class="combat-stats-grid">
-        <div class="info-item">
-            <label for="char-hp">Хиты (HP)</label>
-            <input type="number" id="char-hp" name="char-hp" value="10">
-        </div>
-        <div class="info-item">
-            <label for="char-ac">Класс Брони (AC)</label>
-            <input type="number" id="char-ac" name="char-ac" value="10">
-        </div>
-    </div>
-
-    <!-- Основные характеристики (ВАШ СТАРЫЙ КОД) -->
-    <div class="stats">
-        <div class="stat">
-            <h2>Сила</h2>
-            <div class="controls">
-                <button class="decrease">-</button>
-                <span class="value">10</span>
-                <button class="increase">+</button>
-            </div>
-            <div class="modifier">+0</div>
-        </div>
-        <div class="stat">
-            <h2>Ловкость</h2>
-            <div class="controls">
-                <button class="decrease">-</button>
-                <span class="value">10</span>
-                <button class="increase">+</button>
-            </div>
-            <div class="modifier">+0</div>
-        </div>
-        <div class="stat">
-            <h2>Телосложение</h2>
-            <div class="controls">
-                <button class="decrease">-</button>
-                <span class="value">10</span>
-                <button class="increase">+</button>
-            </div>
-            <div class="modifier">+0</div>
-        </div>
-        <div class="stat">
-            <h2>Интеллект</h2>
-            <div class="controls">
-                <button class="decrease">-</button>
-                <span class="value">10</span>
-                <button class="increase">+</button>
-            </div>
-            <div class="modifier">+0</div>
-        </div>
-        <div class="stat">
-            <h2>Мудрость</h2>
-            <div class="controls">
-                <button class="decrease">-</button>
-                <span class="value">10</span>
-                <button class="increase">+</button>
-            </div>
-            <div class="modifier">+0</div>
-        </div>
-        <div class="stat">
-            <h2>Харизма</h2>
-            <div class="controls">
-                <button class="decrease">-</button>
-                <span class="value">10</span>
-                <button class="increase">+</button>
-            </div>
-            <div class="modifier">+0</div>
-        </div>
-    </div>
-
-
-    <!-- Инвентарь и Деньги -->
-    <div class="inventory-section">
-        <h2>Инвентарь</h2>
-        <textarea id="inventory-list" rows="10" placeholder="Записывайте сюда ваши предметы..."></textarea>
-        <h3>Кошелек</h3>
-        <div class="currency-grid">
-            <div class="info-item">
-                <label for="gold-coins">Золотые (GP)</label>
-                <input type="number" id="gold-coins" value="0">
-            </div>
-            <div class="info-item">
-                <label for="silver-coins">Серебряные (SP)</label>
-                <input type="number" id="silver-coins" value="0">
-            </div>
-            <div class="info-item">
-                <label for="copper-coins">Медные (CP)</label>
-                <input type="number" id="copper-coins" value="0">
-            </div>
-        </div>
-    </div>
-
-    <!-- Заклинания -->
-    <div class="spells-section">
-        <h2>Заклинания</h2>
-        <textarea id="spells-list" rows="10" placeholder="Записывайте сюда ваши заклинания..."></textarea>
-    </div>
-
-    <!-- Кнопки сохранения и загрузки -->
-    <div class="actions">
-        <button id="save-btn">Сохранить персонажа</button>
-        <button id="load-btn">Загрузить персонажа</button>
-        <input type="file" id="load-input" style="display: none;">
-    </div>
-
-
+    <!-- Подключаем JS от Telegram -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
