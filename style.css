@@ -1,11 +1,5 @@
 /* (Ваши старые стили) */
-body {
-    font-family: sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
-    margin: 0;
-    padding: 15px;
-}
+body { font-family: sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 15px; }
 .container { max-width: 700px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .section { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
 h1, h2, h3 { color: #5a2a99; }
@@ -16,45 +10,37 @@ button:hover { background-color: #49227e; }
 /* --- НОВЫЕ И ИСПРАВЛЕННЫЕ СТИЛИ --- */
 .hidden { display: none; }
 
-.info-grid, .stats-grid, .money-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-}
+.info-grid, .stats-grid, .money-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
 .money-grid { grid-template-columns: repeat(3, 1fr); }
 
 .labeled-input { display: flex; flex-direction: column; }
 .labeled-input label { margin-bottom: 4px; font-weight: bold; font-size: 0.9em; }
 .labeled-input input { margin-bottom: 0; }
 
+/* Ключевое исправление для характеристик */
 .stat-control {
     display: flex;
     align-items: center;
 }
-/* Убираем стрелочки, так как они перекрываются */
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+.stat-control input {
+    flex-grow: 1; /* Поле ввода занимает все доступное место */
 }
-input[type=number] { -moz-appearance: textfield; }
-
 .modifier {
-    padding: 0 8px;
-    font-size: 1.4em;
+    padding-left: 10px; /* Отступ между полем и бонусом */
+    font-size: 1.5em;
     font-weight: bold;
     color: #333;
 }
 
 .calc-field { display: flex; align-items: center; }
 .calc-field input { flex-grow: 1; margin-bottom: 0; }
-.calc-field button { padding: 5px 8px; margin-left: 5px; background-color: #ddd; color: #333; }
+.calc-field button { padding: 5px 8px; margin-left: 5px; background-color: #ddd; color: #333; flex-shrink: 0; }
 
 #asi-section { background-color: #e8dff5; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; }
 
 .list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
 .list-item span { word-break: break-word; padding-right: 10px; }
-.list-item button { background: #ff4d4d; padding: 2px 8px; }
+.list-item button { background: #ff4d4d; padding: 2px 8px; flex-shrink: 0; }
 
 .character-slots { display: flex; gap: 10px; align-items: center; }
 .character-slots select { margin-bottom: 0; }
