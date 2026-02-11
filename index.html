@@ -26,9 +26,9 @@
                 <div class="labeled-input"><label for="race">Раса</label><input type="text" id="race"></div>
                 <div class="labeled-input"><label for="class">Класс</label><input type="text" id="class"></div>
                 <div class="labeled-input"><label for="level">Уровень</label><input type="number" id="level" value="1" min="1" max="20"></div>
-                <div class="labeled-input"><label for="experience">Опыт</label><input type="number" id="experience"></div>
+                <div class="labeled-input"><label for="experience">Опыт</label><input type="number" id="experience" min="0"></div>
                 <div class="labeled-input">
-                    <label for="armorClass">КБ</label>
+                    <label for="armorClass">Класс Брони (КД)</label>
                     <div class="calc-field">
                         <input type="number" id="armorClass">
                         <button id="recalc-ac-btn" title="Пересчитать (10 + мод. Ловкости)">🔄</button>
@@ -44,9 +44,9 @@
             </div>
             <h3>Деньги</h3>
             <div class="money-grid">
-                 <div class="labeled-input"><label for="gp">ЗМ</label><input type="number" id="gp" min="0"></div>
-                 <div class="labeled-input"><label for="sp">СМ</label><input type="number" id="sp" min="0"></div>
-                 <div class="labeled-input"><label for="cp">ММ</label><input type="number" id="cp" min="0"></div>
+                 <div class="labeled-input"><label for="gp">Золото</label><input type="number" id="gp" min="0" value="0"></div>
+                 <div class="labeled-input"><label for="sp">Серебро</label><input type="number" id="sp" min="0" value="0"></div>
+                 <div class="labeled-input"><label for="cp">Медь</label><input type="number" id="cp" min="0" value="0"></div>
             </div>
         </div>
 
@@ -54,49 +54,50 @@
         <div class="section">
             <h2>Характеристики</h2>
             <div id="asi-section" class="hidden">
-                <p>Доступно очков улучшения: <b id="asi-points">0</b></p>
+                <p>Доступно очков улучшения (ASI): <b id="asi-points">0</b></p>
             </div>
             <div class="stats-grid">
+                <!-- Структура каждого стата изменена -->
                 <div class="stat">
                     <label for="strength">Сила</label>
                     <div class="stat-control">
                         <input type="number" id="strength" class="stat-input" value="8" min="1" max="20">
-                        <span class="modifier" id="strength-mod"></span>
+                        <span class="modifier" id="strength-mod">+0</span>
                     </div>
                 </div>
                 <div class="stat">
                     <label for="dexterity">Ловкость</label>
                     <div class="stat-control">
                         <input type="number" id="dexterity" class="stat-input" value="8" min="1" max="20">
-                        <span class="modifier" id="dexterity-mod"></span>
+                        <span class="modifier" id="dexterity-mod">+0</span>
                     </div>
                 </div>
                 <div class="stat">
                     <label for="constitution">Телосложение</label>
                     <div class="stat-control">
                         <input type="number" id="constitution" class="stat-input" value="8" min="1" max="20">
-                        <span class="modifier" id="constitution-mod"></span>
+                        <span class="modifier" id="constitution-mod">+0</span>
                     </div>
                 </div>
                 <div class="stat">
                     <label for="intelligence">Интеллект</label>
                     <div class="stat-control">
                         <input type="number" id="intelligence" class="stat-input" value="8" min="1" max="20">
-                        <span class="modifier" id="intelligence-mod"></span>
+                        <span class="modifier" id="intelligence-mod">+0</span>
                     </div>
                 </div>
                 <div class="stat">
                     <label for="wisdom">Мудрость</label>
                     <div class="stat-control">
                         <input type="number" id="wisdom" class="stat-input" value="8" min="1" max="20">
-                        <span class="modifier" id="wisdom-mod"></span>
+                        <span class="modifier" id="wisdom-mod">+0</span>
                     </div>
                 </div>
                 <div class="stat">
                     <label for="charisma">Харизма</label>
                     <div class="stat-control">
                         <input type="number" id="charisma" class="stat-input" value="8" min="1" max="20">
-                        <span class="modifier" id="charisma-mod"></span>
+                        <span class="modifier" id="charisma-mod">+0</span>
                     </div>
                 </div>
             </div>
@@ -136,7 +137,7 @@
         <!-- Заметки -->
         <div class="section">
             <h2>Заметки</h2>
-            <textarea id="notes" rows="6"></textarea>
+            <textarea id="notes" rows="6" placeholder="Здесь можно хранить предысторию, важные имена и места..."></textarea>
         </div>
         
         <!-- Кнопки управления -->
