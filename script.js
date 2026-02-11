@@ -1,137 +1,213 @@
-// Этот обработчик ждет, пока вся HTML-страница полностью загрузится
-document.addEventListener('DOMContentLoaded', () => {
+// Инициализируем Web App от Telegram
+const tg = window.Telegram.WebApp;
+tg.expand(); // Расширяем приложение на весь экран
 
-    // --- Старый код для кнопок характеристик ---
-    // Он должен быть здесь, внутри основного обработчика
-    document.querySelectorAll('.stat').forEach(statElement => {
-        const valueElement = statElement.querySelector('.value');
-        const modifierElement = statElement.querySelector('.modifier');
-        const increaseButton = statElement.querySelector('.increase');
-        const decreaseButton = statElement.querySelector('.decrease');
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ЭЛЕМЕНТЫ DOM ---
+let itemsDB = [];
+let spellsDB = [];
 
-        const updateModifier = () => {
-            const value = parseInt(valueElement.textContent);
-            const modifier = Math.floor((value - 10) / 2);
-            modifierElement.textContent = (modifier >= 0 ? '+' : '') + modifier;
-        };
+const charNameInput = document.getElementById('charName');
+const levelInput = document.getElementById('level');
+const statInputs = document.querySelectorAll('.stat-input');
+const pointBuyCounter = document.getElementById('point-buy-counter');
 
-        increaseButton.addEventListener('click', () => {
-            let value = parseInt(valueElement.textContent);
-            value++;
-            valueElement.textContent = value;
-            updateModifier();
+const inventoryList = document.getElementById('inventory-list');
+const itemSelect = document.getElementById('item-select');
+const addItemBtn = document.getElementById('add-item-btn');
+
+const spellList = document.getElementById('spell-list');
+const spellSelect = document.getElementById('spell-select');
+const addSpellBtn = document.getElementById('add-spell-btn');
+
+const saveBtn = document.getElementById('save-btn');
+const shareBtn = document.getElementById('share-btn');
+
+// --- ЗАГРУЗКА ДАННЫХ (ПРЕДМЕТЫ И ЗАКЛИНАНИЯ) ---
+async function loadDatabases() {
+    try {
+        const [itemsResponse, spellsResponse] = await Promise.all([
+            fetch('items.json'),
+            fetch('spells.json')
+        ]);
+        itemsDB = await itemsResponse.json();
+        spellsDB = await spellsResponse.json();
+
+        // Заполняем выпадающие списки
+        itemsDB.forEach(item => {
+            const option = new Option(item.name, item.name);
+            itemSelect.add(option);
         });
-
-        decreaseButton.addEventListener('click', () => {
-            let value = parseInt(valueElement.textContent);
-            value--;
-            valueElement.textContent = value;
-            updateModifier();
+        spellsDB.forEach(spell => {
+            const option = new Option(spell.name, spell.name);
+            spellSelect.add(option);
         });
+    } catch (error) {
+        console.error("Не удалось загрузить базы данных:", error);
+    }
+}
 
-        // Инициализация модификатора при загрузке
-        updateModifier();
+// --- УПРАВЛЕНИЕ ПЕРСОНАЖЕМ (СОХРАНЕНИЕ/ЗАГРУЗКА) ---
+let character = {
+    name: '',
+    level: 1,
+    stats: { strength: 8, dexterity: 8, constitution: 8, intelligence: 8, wisdom: 8, charisma: 8 },
+    inventory: [],
+    spells: []
+};
+
+function saveCharacter() {
+    character.name = charNameInput.value;
+    character.level = parseInt(levelInput.value) || 1;
+    statInputs.forEach(input => {
+        character.stats[input.id] = parseInt(input.value) || 8;
     });
+    // inventory и spells уже обновляются при добавлении/удалении
 
+    localStorage.setItem('dndCharacter', JSON.stringify(character));
+    tg.HapticFeedback.notificationOccurred('success');
+    alert('Персонаж сохранен!');
+}
 
-    // --- Новый код для сохранения и загрузки ---
-    // Он должен быть здесь же, как отдельный независимый блок
-    const saveBtn = document.getElementById('save-btn');
-    const loadBtn = document.getElementById('load-btn');
-    const loadInput = document.getElementById('load-input');
-
-    // --- Функция Сохранения ---
-    saveBtn.addEventListener('click', () => {
-        const characterData = {
-            name: document.getElementById('char-name').value,
-            race: document.getElementById('char-race').value,
-            class: document.getElementById('char-class').value,
-            level: document.getElementById('char-level').value,
-            xp: document.getElementById('char-xp').value,
-            hp: document.getElementById('char-hp').value,
-            ac: document.getElementById('char-ac').value,
-            inventory: document.getElementById('inventory-list').value,
-            spells: document.getElementById('spells-list').value,
-            gold: document.getElementById('gold-coins').value,
-            silver: document.getElementById('silver-coins').value,
-            copper: document.getElementById('copper-coins').value,
-            stats: {} // Создаем объект для характеристик
-        };
+function loadCharacter() {
+    const savedData = localStorage.getItem('dndCharacter');
+    if (savedData) {
+        character = JSON.parse(savedData);
         
-        // Собираем все характеристики
-        document.querySelectorAll('.stat').forEach(statElement => {
-            const statName = statElement.querySelector('h2').textContent.toLowerCase();
-            const statValue = statElement.querySelector('.value').textContent;
-            characterData.stats[statName] = statValue;
+        charNameInput.value = character.name;
+        levelInput.value = character.level;
+        statInputs.forEach(input => {
+            input.value = character.stats[input.id];
         });
+        
+        renderInventory();
+        renderSpells();
+        updatePointBuy();
+    }
+}
 
-        const dataStr = JSON.stringify(characterData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-
-        const link = document.createElement('a');
-        link.href = url;
-        const fileName = characterData.name.trim() ? `${characterData.name.replace(/[^a-z0-9]/gi, '_')}.json` : 'character_sheet.json';
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        alert('Лист персонажа сохранен!');
+// --- ЛОГИКА ИНВЕНТАРЯ И ЗАКЛИНАНИЙ ---
+function renderInventory() {
+    inventoryList.innerHTML = '';
+    character.inventory.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'list-item';
+        itemDiv.innerHTML = `<span><b>${item.name}</b>: ${item.description}</span>`;
+        const removeBtn = document.createElement('button');
+        removeBtn.innerText = 'x';
+        removeBtn.onclick = () => {
+            character.inventory.splice(index, 1);
+            renderInventory();
+        };
+        itemDiv.appendChild(removeBtn);
+        inventoryList.appendChild(itemDiv);
     });
+}
 
-    // --- Функции Загрузки ---
-    loadBtn.addEventListener('click', () => {
-        loadInput.click();
+function renderSpells() {
+    spellList.innerHTML = '';
+    character.spells.forEach((spell, index) => {
+        const spellDiv = document.createElement('div');
+        spellDiv.className = 'list-item';
+        spellDiv.innerHTML = `<span><b>${spell.name}</b>: ${spell.description}</span>`;
+        const removeBtn = document.createElement('button');
+        removeBtn.innerText = 'x';
+        removeBtn.onclick = () => {
+            character.spells.splice(index, 1);
+            renderSpells();
+        };
+        spellDiv.appendChild(removeBtn);
+        spellList.appendChild(spellDiv);
     });
+}
 
-    loadInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) {
-            return;
+addItemBtn.addEventListener('click', () => {
+    const selectedItemName = itemSelect.value;
+    const itemData = itemsDB.find(item => item.name === selectedItemName);
+    if (itemData) {
+        character.inventory.push(itemData);
+        renderInventory();
+    }
+});
+
+addSpellBtn.addEventListener('click', () => {
+    const selectedSpellName = spellSelect.value;
+    const spellData = spellsDB.find(spell => spell.name === selectedSpellName);
+    if (spellData) {
+        character.spells.push(spellData);
+        renderSpells();
+    }
+});
+
+// --- ЛОГИКА ЛИМИТОВ ХАРАКТЕРИСТИК (POINT BUY) ---
+const pointBuyCost = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
+
+function updatePointBuy() {
+    if (character.level !== 1) {
+        pointBuyCounter.textContent = 'Распределение очков доступно только на 1 уровне.';
+        statInputs.forEach(input => input.max = 20); // Снимаем ограничение после 1 уровня
+        return;
+    }
+    
+    let totalCost = 0;
+    statInputs.forEach(input => {
+        const value = parseInt(input.value);
+        if (value > 15) { // Ограничение Point Buy
+            input.value = 15;
         }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const loadedData = JSON.parse(e.target.result);
-
-                document.getElementById('char-name').value = loadedData.name || '';
-                document.getElementById('char-race').value = loadedData.race || '';
-                document.getElementById('char-class').value = loadedData.class || '';
-                document.getElementById('char-level').value = loadedData.level || '1';
-                document.getElementById('char-xp').value = loadedData.xp || '0';
-                document.getElementById('char-hp').value = loadedData.hp || '10';
-                document.getElementById('char-ac').value = loadedData.ac || '10';
-                document.getElementById('inventory-list').value = loadedData.inventory || '';
-                document.getElementById('spells-list').value = loadedData.spells || '';
-                document.getElementById('gold-coins').value = loadedData.gold || '0';
-                document.getElementById('silver-coins').value = loadedData.silver || '0';
-                document.getElementById('copper-coins').value = loadedData.copper || '0';
-
-                // Загружаем характеристики
-                if (loadedData.stats) {
-                    document.querySelectorAll('.stat').forEach(statElement => {
-                        const statName = statElement.querySelector('h2').textContent.toLowerCase();
-                        if (loadedData.stats[statName]) {
-                            statElement.querySelector('.value').textContent = loadedData.stats[statName];
-                            // Обновляем модификатор после загрузки
-                            const value = parseInt(loadedData.stats[statName]);
-                            const modifier = Math.floor((value - 10) / 2);
-                            statElement.querySelector('.modifier').textContent = (modifier >= 0 ? '+' : '') + modifier;
-                        }
-                    });
-                }
-                
-                alert('Лист персонажа успешно загружен!');
-            } catch (error) {
-                alert('Ошибка! Не удалось прочитать файл. Убедитесь, что это корректный JSON файл персонажа.');
-                console.error("Ошибка при загрузке:", error);
-            }
-        };
-        reader.readAsText(file);
-        
-        event.target.value = '';
+        totalCost += pointBuyCost[parseInt(input.value)] || 0;
     });
+
+    const pointsLeft = 27 - totalCost;
+    pointBuyCounter.textContent = `Очков для распределения: ${pointsLeft}`;
+    
+    if (pointsLeft < 0) {
+        pointBuyCounter.style.color = 'red';
+    } else {
+        pointBuyCounter.style.color = 'black';
+    }
+}
+
+// --- ФУНКЦИЯ "ПОДЕЛИТЬСЯ С ГМ" ---
+function shareWithGM() {
+    saveCharacter(); // Убедимся, что делимся актуальными данными
+    const characterDataString = JSON.stringify(character);
+    const encodedData = btoa(characterDataString); // Кодируем в Base64 для безопасности в URL
+    
+    const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+    
+    // Используем API Telegram для отправки текста в чат
+    tg.sendData(`Вот мой лист персонажа: ${shareUrl}`);
+    
+    // Если sendData не работает (старая версия), можно просто показать ссылку
+    // alert(`Скопируйте и отправьте ГМу:\n${shareUrl}`);
+}
+
+function loadFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const data = urlParams.get('data');
+    if (data) {
+        try {
+            const decodedData = atob(data); // Декодируем из Base64
+            localStorage.setItem('dndCharacter', decodedData); // Сохраняем полученные данные
+            loadCharacter(); // Загружаем их в интерфейс
+            alert('Лист персонажа загружен по ссылке!');
+        } catch (e) {
+            console.error("Ошибка при загрузке данных из URL:", e);
+            loadCharacter(); // Загружаем обычные данные, если URL неверный
+        }
+    } else {
+        loadCharacter(); // Загружаем из localStorage, если в URL нет данных
+    }
+}
+
+// --- ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ---
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadDatabases(); // Сначала грузим базы
+    loadFromURL();         // Потом грузим персонажа (из URL или localStorage)
+
+    // Добавляем слушатели событий
+    saveBtn.addEventListener('click', saveCharacter);
+    shareBtn.addEventListener('click', shareWithGM);
+    statInputs.forEach(input => input.addEventListener('input', updatePointBuy));
+    levelInput.addEventListener('input', updatePointBuy);
 });
